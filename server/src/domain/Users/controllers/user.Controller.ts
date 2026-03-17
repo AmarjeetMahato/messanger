@@ -1,6 +1,55 @@
+import { inject, injectable } from "tsyringe";
+import { TOKENS } from "../../../helpers/tokens";
+import { Request,Response, NextFunction } from "express";
+import { UserService } from "../services/user.Service";
+import { HTTPSTATUS } from "../../../utils/https.config";
 
 
-
+@injectable()
 export class UserController {
 
+    constructor(@inject(TOKENS.UserService) private service:UserService){}
+
+    fetchuserById = async (req:Request, res:Response, next:NextFunction):Promise<void> => {
+               const {userId} = req.params
+               if(typeof userId != "string"){
+                res.status(HTTPSTATUS.BAD_REQUEST).json({
+                     message:"UserId must be valid string",
+                     success:false
+                })
+                return;
+               }
+         try {
+               const result = await this.service.getUserByuserId(userId);
+               res.status(HTTPSTATUS.OK).json({
+                  message:"User fetch successfully",
+                  success:true,
+                  data:result
+               })
+         } catch (error) {
+           console.log(error);
+           next(error); 
+         }
+    }
+
+
+    fetchAllusers = async (req:Request, res:Response, next:NextFunction):Promise<void> => {
+                 
+                   const limit = Number(req.query.limit) || 20;
+                   const page  = Number(req.query.page) || 1;
+
+                 
+       try {
+               const allUsers = await this.service.getAllUsers(limit,page)
+               res.status(HTTPSTATUS.OK).json({
+                  message:"User fetch successfully",
+                  success:true,
+                  data:allUsers  
+               })
+       } catch (error) {
+            console.log(error);
+            next(error)
+            
+       }
+    }
 }

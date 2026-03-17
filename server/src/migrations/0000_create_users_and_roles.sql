@@ -57,12 +57,14 @@ CREATE TABLE "roles" (
 --> statement-breakpoint
 CREATE TABLE "tokens" (
 	"token_id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"token" text,
+	"token_hash" text NOT NULL,
+	"type" varchar(50) NOT NULL,
 	"otp_generated_at" timestamp,
 	"otp_expires_at" timestamp,
 	"last_otp_requested_at" timestamp,
 	"validated_at" timestamp,
-	"user_id" uuid NOT NULL
+	"user_id" uuid NOT NULL,
+	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
 CREATE TABLE "users" (
@@ -77,6 +79,7 @@ CREATE TABLE "users" (
 	"is_blocked" boolean DEFAULT false,
 	"blocked_until" timestamp,
 	"failed_login_attempts" integer DEFAULT 0,
+	"role_id" uuid NOT NULL,
 	"mfa_enabled" boolean DEFAULT false,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now()
@@ -94,5 +97,6 @@ ALTER TABLE "messages" ADD CONSTRAINT "messages_sender_id_users_id_fk" FOREIGN K
 ALTER TABLE "participants" ADD CONSTRAINT "participants_conversation_id_conversations_id_fk" FOREIGN KEY ("conversation_id") REFERENCES "public"."conversations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "participants" ADD CONSTRAINT "participants_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "tokens" ADD CONSTRAINT "tokens_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "users" ADD CONSTRAINT "users_role_id_roles_role_id_fk" FOREIGN KEY ("role_id") REFERENCES "public"."roles"("role_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_roles" ADD CONSTRAINT "user_roles_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_roles" ADD CONSTRAINT "user_roles_role_id_roles_role_id_fk" FOREIGN KEY ("role_id") REFERENCES "public"."roles"("role_id") ON DELETE cascade ON UPDATE no action;

@@ -6,6 +6,7 @@ import { users } from "../../../config/schema/User.model";
 import { eq, sql } from "drizzle-orm";
 import { roles } from "../../../config/schema/Role.model";
 import { userRoles } from "../../../config/schema/UsersRole.model";
+import bcrypt from "bcryptjs"
 
 
 @injectable()
@@ -14,8 +15,8 @@ export class AuthRepository{
     constructor(@inject(TOKENS.DB) private db:DbOrTx ){}
 
     async createUser(data:CreateUserSchemaDto, roleId:string){
-
-          const [result] = await this.db
+         const hasedPassword = await bcrypt.hash(data.password,12);
+         const [result] = await this.db
                              .insert(users)
                              .values({
        email: data.email,
@@ -23,7 +24,7 @@ export class AuthRepository{
       fullName: data.fullName ?? null,
       avatarUrl: data.avatarUrl ?? null,
       mfaEnabled: data.mfaEnabled ?? false,
-      passwordHash: data.password,
+      passwordHash: hasedPassword,
       roleId:roleId,              // required field
       isVerified: false,   // optional, defaults to false
       isBlocked: false,    // optional, defaults to false

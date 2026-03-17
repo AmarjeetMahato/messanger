@@ -7,19 +7,21 @@ export class EmailService {
 
   constructor() {
     this.transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT),
-      secure: true,
+      host: process.env.GMAIL_SMTP_HOST!,
+      port: Number(process.env.GMAIL_SMTP_PORT!),
+      secure: false,
       auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+        user: process.env.GMAIL_SMTP_USER!,
+        pass: process.env.GMAIL_SMTP_PASS!,
       },
     });
   }
 
   async sendEmail(to: string, subject: string, html: string) {
+     console.log("to ", to);
+     console.log("subject ",subject);
     await this.transporter.sendMail({
-      from: `"Security Team" <${process.env.SMTP_USER}>`,
+      from: `"Security Team" <${process.env.GMAIL_SMTP_USER!}>`,
       to,
       subject,
       html,
@@ -29,7 +31,9 @@ export class EmailService {
 // Beautiful Email Templates with Blue Color Scheme
 
 async sendVerificationEmail(email: string, token: string) {
-  const link = `${process.env.FRONTEND_URL}/verify?token=${token}`;
+  console.log("email",email, "token",token );
+  
+  const link = `${process.env.FRONTEND_URL}/verify-otp?token=${token}`;
   await this.sendEmail(
     email,
     "Verify your account",
@@ -44,7 +48,7 @@ async sendVerificationEmail(email: string, token: string) {
       <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f0f9ff; padding: 40px 20px;">
         <tr>
           <td align="center">
-            <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+      <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
               
               <!-- Header with gradient -->
               <tr>

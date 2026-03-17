@@ -1,7 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 
-const baseURL = "http://localhost:5000";
+const baseURL = "http://localhost:5000/api/v1";
 
 // Base API
 export const baseAPI = createApi({
@@ -16,7 +16,7 @@ export const baseAPI = createApi({
     },
   }),
 
-  tagTypes: ["User", "Auth"],
+  tagTypes: ["User", "Auth","Message","Conversation"],
 
   // TypeScript requires endpoints to be typed
   endpoints: (builder) => ({}),

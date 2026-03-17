@@ -4,7 +4,7 @@ import { users } from "./User.model";
 import { relations } from "drizzle-orm";
 
 // Enums for strict data integrity
-export const deviceTypeEnum = pgEnum("device_type", ["mobile", "desktop", "tablet", "web"]);
+export const deviceTypeEnum = pgEnum("device_type", ["mobile", "desktop", "tablet", "web","smarttv"]);
 export const platformEnum = pgEnum("platform", ["ios", "android", "windows", "macos", "linux", "browser"]);
 
 export const devices = pgTable("devices", {
@@ -24,8 +24,7 @@ export const devices = pgTable("devices", {
   refreshToken: text("refresh_token"), // For persistent login
   lastActive: timestamp("last_active").defaultNow(),
   isTrusted: boolean("is_trusted").default(false),
-  timezone: timestamp("timezone").defaultNow(),
-  
+  timezone: text("timezone"),
   pushToken: text("push_token"), // For FCM/APNS notifications
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [({

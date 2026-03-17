@@ -16,7 +16,13 @@ export const createUserSchema = z.object({
   username: z.string().min(3).max(50)
              .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, underscores"),
   fullName: z.string().max(100).optional(),
-  avatarUrl: z.url("Invalid avatar URL").optional(),
+    avatarUrl: z
+    .string()
+    .optional()
+    .refine(
+      (val) => !val || /^https?:\/\/.+/.test(val),
+      { message: "Invalid avatar URL" }
+    ),
   mfaEnabled: z.boolean().optional(),
 });
 

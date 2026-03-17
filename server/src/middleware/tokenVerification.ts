@@ -2,9 +2,13 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
 export const verifyToken = (req: Request, res: Response, next: NextFunction) => {
+     
+           
   try {
-    const token = req.cookies?.accessToken;
 
+    const token = req.cookies?.accessToken;
+    // console.log("token ", token);
+    
     if (!token) {
       return res.status(401).json({
         success: false,
@@ -12,9 +16,10 @@ export const verifyToken = (req: Request, res: Response, next: NextFunction) => 
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET!) as { userId: string };
 
     req.userId = decoded.userId; // ✅ Now TypeScript is happy
+
     next();
   } catch (error: any) {
     if (error.name === 'TokenExpiredError') {

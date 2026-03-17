@@ -26,7 +26,7 @@ export class DeviceRepository{
         deviceName: deviceDto.deviceName,
         pushToken: deviceDto.pushToken,
         isTrusted: deviceDto.isTrusted,
-        timezone: deviceDto.timezone ? new Date(deviceDto.timezone) : new Date(),
+        timezone: deviceDto.timezone ?? null, // keep as string
       })
       .returning();
      return  result;

@@ -41,12 +41,8 @@ export class AuthService{
            if(duplicateEmail){
               throw new AlreadyExistsException(Message.EMAIL_ALREADY_EXISTS)
            }  
-           const hasedPassword = await bcrypt.hash(data.password,10);
-           const userData = {
-                           ...data,              // all other fields (username, email, etc.)
-                            passwordHash: hasedPassword, // replace plain password
-                       };
-           const result  = await this.repo.createUser(userData,roleNames.roleId);
+          
+           const result  = await this.repo.createUser(data,roleNames.roleId);
            if(!result?.id){
               throw new InternalServerException(Message.USER_CREATION_FAILED)
            }
@@ -61,10 +57,14 @@ export class AuthService{
                     lastOtpRequestedAt: new Date(),
                     validatedAt: null,
 };
-          await this.tokenService.createToken(tokenData)
-         //   Send verficationEmail 
-          this.emailService.sendVerificationEmail(userData.email,rawOTP)
-                           .catch(console.error)
+         const createToken =  await this.tokenService.createToken(tokenData)
+         console.log("createToken?.tokenHash",createToken?.tokenHash);
+         
+       // fire-and-forget async email
+
+    await this.emailService.sendVerificationEmail(data.email, rawOTP)
+    .catch(err => console.error("Email failed:", err));
+                      
          return result;
         
     }
@@ -106,7 +106,7 @@ await this.userService.markedUserVerify(userId)
 }
 
 
-    async loginUser(data:LoginUserDto,req:Request, res:Response){
+async loginUser(data:LoginUserDto,req:Request, res:Response){
           const user = await this.repo.fetchUserByEmail(data.email)
           if(!user || !user?.id || !user?.passwordHash || !user?.email){
              throw new UnauthorizedException(Message.INVALID_CREDENTIALS);  
@@ -115,7 +115,7 @@ await this.userService.markedUserVerify(userId)
           const cleanRoles = user.roles?.filter((r): r is string => Boolean(r)) ?? [];
           const roles = cleanRoles.length > 0 ? cleanRoles : ["user"]
             // 1️⃣ Check if user is blocked temporarily
-            if(user?.isBlocked && user?.blockedUntil){
+            if(user?.isBlocked && user?.blockedUntil instanceof Date){
                    const now = new Date();
                    if(user?.blockedUntil > now){
                          throw new ForbiddenException( `Account temporarily blocked until ${user.blockedUntil.toISOString()}`);
@@ -138,7 +138,7 @@ await this.userService.markedUserVerify(userId)
                          await this.repo.blockUserTemporarily(user.id, blockedUntil);
 
       // Optional: send email to user for info
-        await this.emailService.sendAccountBlockedEmail(user.email, blockedUntil);
+         this.emailService.sendAccountBlockedEmail(user.email, blockedUntil);
 
       throw new ForbiddenException(
         `Account temporarily blocked due to multiple failed login attempts until ${blockedUntil.toISOString()}`
@@ -196,7 +196,7 @@ await this.userService.markedUserVerify(userId)
   timezone: deviceInfo.timezone
           };  
 
-            await this.deviceService.regiterUserDevice(rawDeviceData)            
+             this.deviceService.regiterUserDevice(rawDeviceData)            
              return ;         
     }
 

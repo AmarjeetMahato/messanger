@@ -18,8 +18,12 @@ export class  AuthControllers {
                 res.status(400).json({message:"Invalid fields"})
                 return;
                }
+               const userData = {
+                               ...parsed.data,
+                               roleName: parsed.data.roleName ?? "USER", // ✅ default role
+                             };
            try {
-                  await this.service.createUser(parsed.data);
+                  await this.service.createUser(userData);
                   res.status(HTTPSTATUS.ACCEPTED).json({
                       message:"A verification email send to your email",
                       success:true,
@@ -38,8 +42,8 @@ export class  AuthControllers {
                }
            try {
                   const result = await this.service.loginUser(parsed.data,req,res);
-                  res.status(HTTPSTATUS.ACCEPTED).json({
-                      message:"A verification email send to your email",
+                  res.status(HTTPSTATUS.OK).json({
+                      message:"User Logged in Successfully",
                       success:true,
                   })
            } catch (error) {
@@ -50,26 +54,36 @@ export class  AuthControllers {
 
     verificationEmailWithOTP  = async (req:Request, res:Response, next:NextFunction) :Promise<void> => {
                 try {
-                    
+                        const otp = req.body;
+                        const {userId} = req.params;
+                        const result = await this.service.verificationEmailWithToken("userId",otp);
+                         res.status(HTTPSTATUS.CREATED).json({
+                              message:"Email verified successfully",
+                              success:true
+                         })
                 } catch (error) {
                      next(error)
                 }
     }  
 
     getMe =  async (req:Request, res:Response, next:NextFunction) :Promise<void> => {
-                 const result = userIdSchema.safeParse(req.params);
-                 if(!result.success){
-              res.status(400).json({
-                             message: "Invalid user id",
-                             errors: result.error
-                                      });
-                             return}
+                 const userId = req.userId
+
+                 console.log("userId ", userId);
+                 
+                  if(typeof userId != "string"){
+                res.status(HTTPSTATUS.BAD_REQUEST).json({
+                     message:"UserId must be valid string",
+                     success:false
+                })
+                return;
+               }
            try {
-                  const  user = await this.service.fetchUser(result.data.id);
+                  const  user = await this.service.fetchUser(userId);
                   res.status(HTTPSTATUS.OK).json({
-                      message:"A verification email send to your email",
+                      message:"user fetch successfully",
                       success:true,
-                      user
+                      data:user
                   })
            } catch (error) {
              next(error)
