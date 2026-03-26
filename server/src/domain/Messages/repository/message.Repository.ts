@@ -2,7 +2,7 @@ import { inject, injectable } from "tsyringe";
 import { TOKENS } from "../../../helpers/tokens";
 import {type DbOrTx } from "../../../config/database";
 import { messages } from "../../../config/schema/Messages.model";
-import { and, eq, lt } from "drizzle-orm";
+import { and, desc, eq, lt, lte } from "drizzle-orm";
 import { conversations } from "../../../config/schema/Conversations.model";
 
 
@@ -35,6 +35,7 @@ export class MessageRepository{
     }
 
     async getMessages(conversationId: string, limit = 20, cursor?: string){
+ 
        const messagesList = await this.db
     .select()
     .from(messages)
@@ -46,9 +47,8 @@ export class MessageRepository{
           )
         : eq(messages.conversationId, conversationId)
     )
-    .orderBy(messages.createdAt)
+    .orderBy(desc(messages.createdAt))
     .limit(limit);
-
   // Optional: return in ascending order for UI
   return messagesList.reverse();
   }

@@ -4,6 +4,8 @@
 import { useGetMessagesQuery, useSendMessagesMutation } from "@/redux/rest-api/messageAPI";
 import { useGetMeQuery } from "@/redux/rest-api/userApi";
 import { useState, useRef, useEffect, useMemo } from "react";
+import { socket } from "@/socket/socket";
+import { RawMessage } from "@/@types/MessageTypes";
 
 interface Message{
   id: string;
@@ -39,31 +41,52 @@ const StatusTick = ({ status }: { status?: Message["status"] }) => {
 
 const ChatArea = ({conversationId}:{conversationId:string}) => {
   const [messages, setMessages] = useState<Message[]>([]);
+  const [rawMessage, setRawMessage] = useState<RawMessage[]>([]);
   const [input, setInput] = useState("");
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [emojiPickerFor, setEmojiPickerFor] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-    const {data} = useGetMeQuery()
+  const {data} = useGetMeQuery()
   const currentUserId = data?.data?.id;
 
   const { data: messageData, isLoading } = useGetMessagesQuery(conversationId);
-const message = useMemo(() => {
-  if (!messageData?.data) return [];
 
-  return messageData.data.map((msg) => ({
+  // 1️⃣ Listen to new messages from socket
+  useEffect(()=>{
+      if(!socket) return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    function handleNewMessage({ chatId, message }: {chatId:string, message:RawMessage}){
+          if(chatId !== conversationId) return // Ignore the other conversation;
+          console.log("socket message ", message);
+          
+          setRawMessage(prev => [...prev, message])
+    }
+      socket.on("chat:message:new", handleNewMessage)
+      return () => {
+           socket.off("chat:message:new", handleNewMessage)
+      }
+  },[conversationId])
+
+  console.log("rawMessage ", rawMessage)
+
+const chatMessages = useMemo(() => {
+  return rawMessage.map(msg => ({
     id: msg.id,
     text: msg.content ?? "",
-    // Replace "currentUserId" with your actual user ID variable/state
-    sender: msg.senderId === currentUserId ? "me" : "other", 
-    time: new Date(msg.createdAt).toLocaleTimeString([], { 
-      hour: "2-digit", 
-      minute: "2-digit" 
+    sender: msg.senderId === currentUserId ? "me" : "other",
+    time: new Date(msg.createdAt).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
     }),
     status: msg.status,
   }));
-}, [messageData, currentUserId]);
+}, [rawMessage, currentUserId]);
+
+console.log("chatMessage ", chatMessages);
+
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -141,10 +164,10 @@ const message = useMemo(() => {
             </span>
           </div>
 
-          {message.map((msg, idx) => {
+          {chatMessages.map((msg, idx) => {
             const isMe = msg.sender === "me";
-            const prevSame = idx > 0 && message[idx - 1].sender === msg.sender;
-            const nextSame = idx < message.length - 1 && message[idx + 1].sender === msg.sender;
+            const prevSame = idx > 0 && chatMessages[idx - 1].sender === msg.sender;
+            const nextSame = idx < chatMessages.length - 1 && chatMessages[idx + 1].sender === msg.sender;
 
             return (
               <div

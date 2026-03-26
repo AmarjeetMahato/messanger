@@ -56,7 +56,8 @@ export class MessageController {
       cursor = cursorRaw;
     }
       const messagesList = await this.service.getMessages(conversationId, limit, cursor);
-
+      console.log(messagesList);
+      
       res.status(200).json({
         success: true,
         data: messagesList

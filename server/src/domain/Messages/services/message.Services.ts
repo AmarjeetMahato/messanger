@@ -33,8 +33,8 @@ export class MessageServices{
            // 2️⃣ Get participants
         const participantIds  = await this.participantService.getConversationParticipants(conversationId);
 
-           // 3️⃣ Emit socket message to chat room
-           emitNewMessageToChatRoom(senderId,conversationId,content);
+           // ⚡ Emit full message to chat room
+           emitNewMessageToChatRoom(senderId,conversationId,message);
                // 4️⃣ Emit last message to sidebar/chat list
            emitLastMessageToParticipants(participantIds,conversationId,message)
          return message;

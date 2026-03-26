@@ -5,6 +5,8 @@ import Sidebar from './components/Sidebar'
 // import PageBar from './components/PageBar'
 
 const ChatLayout = ({children}:{children:React.ReactNode}) => {
+
+  
   return (
         <div className="flex h-screen w-screen bg-gray-50 overflow-hidden">
 
