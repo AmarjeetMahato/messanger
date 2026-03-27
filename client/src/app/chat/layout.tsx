@@ -8,9 +8,7 @@ const ChatLayout = ({children}:{children:React.ReactNode}) => {
 
   
   return (
-        <div className="flex h-screen w-screen bg-gray-50 overflow-hidden">
-
-         
+        <div className="flex h-screen w-screen bg-gray-50 overflow-hidden">  
             {/* <div className=' w-15 bg-green-400'>
                 <PageBar  />
             </div>  */}

@@ -1,4 +1,4 @@
-import { LoginUserDto, RequestRegisterUserDto, ResponseAuthDto, VerifyEmailWithOTP } from "@/@types/AuthType";
+import { LoginUserDto, LogoutResponse, RequestRegisterUserDto, ResponseAuthDto, VerifyEmailWithOTP } from "@/@types/AuthType";
 import { baseAPI } from "./baseApi";
 
 
@@ -30,6 +30,14 @@ export const authApi = baseAPI.injectEndpoints({
                  }),
                  invalidatesTags: ["Auth"],
             }),
+
+            logout : builder.query<LogoutResponse,void>({
+                query:()=>({
+                    url:"/auth/logout",
+                    method:"GET",
+                }),
+                providesTags:["Auth"]
+            })
       })
 })
 
@@ -38,5 +46,6 @@ export const authApi = baseAPI.injectEndpoints({
 export const {
     useRegisterMutation,
     useEmailVerificationMutation,
-   useLoginMutation
+   useLoginMutation,
+   useLazyLogoutQuery
 } = authApi;

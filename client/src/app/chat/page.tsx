@@ -1,6 +1,5 @@
 "use client";
 
-import React from 'react';
 import { MessageCircle, Users, Zap, Shield } from 'lucide-react';
 
 const Chat = () => {
@@ -9,18 +8,18 @@ const Chat = () => {
     <div className="flex flex-col h-screen bg-[#0a0a0f] font-sans items-center justify-center p-8 overflow-hidden relative">
       
       {/* Decorative Background Glows */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-violet-600/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-0 right-0 w-125 h-125 bg-purple-500/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-125 h-125 bg-violet-600/10 rounded-full blur-[120px] pointer-events-none" />
 
       {/* Main Card Container */}
       <div className="relative max-w-4xl w-full bg-[#0d001f] rounded-3xl overflow-hidden shadow-[0_32px_80px_rgba(120,0,200,0.25),0_0_0_1px_rgba(150,80,220,0.15)] flex flex-col items-center p-12 text-center">
         
         {/* Header Section with the Specific Gradient */}
-        <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-[#1a0030] via-[#2d0057] to-[#0d001a] opacity-50 pointer-events-none" />
+        <div className="absolute top-0 left-0 w-full h-32 bg-linear-to-br from-[#1a0030] via-[#2d0057] to-[#0d001a] opacity-50 pointer-events-none" />
 
         {/* Icon Container */}
         <div className="relative z-10 inline-block mb-8">
-          <div className="w-28 h-28 bg-gradient-to-br from-purple-600 to-indigo-700 rounded-3xl flex items-center justify-center shadow-[0_0_40px_rgba(147,51,234,0.3)]">
+          <div className="w-28 h-28 bg-linear-to-br from-purple-600 to-indigo-700 rounded-3xl flex items-center justify-center shadow-[0_0_40px_rgba(147,51,234,0.3)]">
             <MessageCircle className="w-14 h-14 text-white" />
           </div>
           {/* Status Indicators */}
@@ -55,7 +54,7 @@ const Chat = () => {
         </div>
 
         {/* CTA Section */}
-        <div className="relative z-10 w-full bg-gradient-to-r from-purple-600/20 to-indigo-600/20 rounded-2xl p-8 border border-purple-500/20">
+        <div className="relative z-10 w-full bg-linear-to-r from-purple-600/20 to-indigo-600/20 rounded-2xl p-8 border border-purple-500/20">
           <h2 className="text-xl font-bold text-white mb-2">Ready to Connect?</h2>
           <p className="text-purple-200/60 mb-6 text-sm">
             Choose a contact from the sidebar to start chatting

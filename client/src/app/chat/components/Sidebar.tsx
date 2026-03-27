@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 import React, { useEffect, useMemo, useState } from "react";
-import { Search, MoreHorizontal, X } from "lucide-react";
+import { Search, MoreHorizontal, X, LogOut  } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCreateConversationMutation, useFetchUserConversationQuery } from "@/redux/rest-api/conversationApi";
 import { useGetAllUsersQuery ,useGetMeQuery} from "@/redux/rest-api/userApi";
@@ -11,6 +11,7 @@ import { socket } from "@/socket/socket";
 import { formatSidebarTime } from "@/utils";
 import { useDispatch } from "react-redux";
 import { setCredentials } from "@/redux/slices/userSlice";
+import { useLazyLogoutQuery } from "@/redux/rest-api/authApi";
 
 
 
@@ -115,6 +116,19 @@ const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
   }
 };
 
+const [triggerLogout, {isLoading:logoutLoading}] = useLazyLogoutQuery();
+
+async function logoutUser() {
+     try {
+        const result = await triggerLogout().unwrap();
+        if(result?.success===true){
+              router.push("/login")
+        }
+     } catch (error) {
+         console.log(error);
+     }
+}
+
 return (
     <div className="flex items-center justify-center min-h-screen bg-[#0a0a0f] font-sans">
       <div className="relative flex flex-col w-full  h-180  overflow-hidden bg-[#0d001f] shadow-[0_32px_80px_rgba(120,0,200,0.35),0_0_0_1px_rgba(150,80,220,0.2)]">
@@ -127,7 +141,20 @@ return (
 
           <div className="relative flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-[22px] font-semibold text-[#f0e6ff] tracking-tight">Messages</h1>
+                   {/* Brand */}
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 rounded-xl bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/40">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" fill="white" opacity="0.9" />
+              <circle cx="9" cy="10" r="1.2" fill="rgba(255,255,255,0.55)" />
+              <circle cx="12" cy="10" r="1.2" fill="rgba(255,255,255,0.55)" />
+              <circle cx="15" cy="10" r="1.2" fill="rgba(255,255,255,0.55)" />
+            </svg>
+          </div>
+          <span className="text-[19px] font-extrabold text-white/90 tracking-tight font-[Syne]">
+            Vibe<span className="text-indigo-400">Chat</span>
+          </span>
+        </div>
               <p className="text-[11px] text-purple-400/70">{unreadCount} unread conversations</p>
             </div>
             <div className="flex gap-2.5 items-center">
@@ -165,6 +192,15 @@ return (
     </span>
   )}
 </button>
+
+{/* Logout */}
+  <button 
+    onClick={logoutUser}
+    className="flex items-center justify-center w-9 h-9 cursor-pointer rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500/20 transition-colors"
+    aria-label="More options"
+  >
+    <LogOut size={18} />
+  </button>
 </div>
           </div>
 

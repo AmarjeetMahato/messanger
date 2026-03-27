@@ -11,6 +11,6 @@ const authController =  container.resolve(AuthControllers)
 router.post("/create",authController.createUser);
 router.post("/login",authController.loginUser);
 router.get("/me",verifyToken, authController.getMe)
-
+router.get("/logout", authController.logoutUser);
 
 export default router;

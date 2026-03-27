@@ -92,10 +92,14 @@ export class  AuthControllers {
 
     logoutUser = async (req:Request, res:Response, next:NextFunction) :Promise<void> => {
           try {
-            
+                await this.service.logoutuser(res);
+                res.status(HTTPSTATUS.OK).json({
+                     message:"User logout successfully",
+                     success:true
+                })
           } catch (error) {
              console.log(error);
-             
+             next(error);
           }
     }
 

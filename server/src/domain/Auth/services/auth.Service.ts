@@ -200,7 +200,7 @@ async loginUser(data:LoginUserDto,req:Request, res:Response){
              return ;         
     }
 
-    async fetchUser(userId:string){
+async fetchUser(userId:string){
            if(!userId){
               throw new BadRequestException("User is required");
            }
@@ -222,4 +222,13 @@ async loginUser(data:LoginUserDto,req:Request, res:Response){
            return userProfile ;
     }
       
+async logoutuser(res:Response){
+          res.clearCookie("accessToken", {
+            httpOnly: true,
+            secure: true, // Set to true if using HTTPS
+            sameSite: "none",
+        });
+        return;
+}
+
 }
