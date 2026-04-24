@@ -4,6 +4,19 @@ import { Message } from "./ErrorCode.ENUM";
 import { HTTPSTATUS, HttpStatusCode } from "./https.config";
 
 
+export class ConflictExceptions extends AppError {
+  constructor(
+    message?: string,
+    errorCode: Message = Message.CONFLICT_ERROR
+  ) {
+    super(
+      message ?? errorCode,   // if message not provided → use enum string
+      errorCode,
+      HTTPSTATUS.CONFLICT
+    );
+  }
+}
+
 
 export class NotFoundExceptions extends AppError {
   constructor(

@@ -2,38 +2,34 @@ import { inject, injectable } from "tsyringe";
 import { TOKENS } from "../../../helpers/tokens";
 import {type DbOrTx } from "../../../config/database";
 import { CreateUserSchemaDto, UpdateUserSchemaDto } from "../dtos/authDto";
-import { users } from "../../../config/schema/User.model";
+import { UserRow, users } from "../../../config/schema/User.model";
 import { eq, sql } from "drizzle-orm";
 import { roles } from "../../../config/schema/Role.model";
 import { userRoles } from "../../../config/schema/UsersRole.model";
 import bcrypt from "bcryptjs"
+import { AuthMapper } from "../mapper/authMapper";
+import { IAuthRepository } from "./auth.Repository.interface";
+import { AuthEntity } from "../entity/authEntity";
+import { InternalServerException } from "../../../utils/Catch-error";
 
 
 @injectable()
-export class AuthRepository{
-
+export class AuthRepository implements IAuthRepository {
+    
     constructor(@inject(TOKENS.DB) private db:DbOrTx ){}
 
-    async createUser(data:CreateUserSchemaDto, roleId:string){
-         const hasedPassword = await bcrypt.hash(data.password,12);
-         const [result] = await this.db
-                             .insert(users)
-                             .values({
-       email: data.email,
-      username: data.username,
-      fullName: data.fullName ?? null,
-      avatarUrl: data.avatarUrl ?? null,
-      mfaEnabled: data.mfaEnabled ?? false,
-      passwordHash: hasedPassword,
-      roleId:roleId,              // required field
-      isVerified: false,   // optional, defaults to false
-      isBlocked: false,    // optional, defaults to false
-      blockedUntil: null,
-      failedLoginAttempts: 0,
-    })
-    .returning();
+    async createUser(row:UserRow):Promise<UserRow>{
 
-       return result; 
+        const [result] = await this.db
+                             .insert(users)
+                             .values(row)
+                              .returning();
+        
+        if (!result){
+           throw new InternalServerException("Failed to create users")
+        }
+
+        return result; 
     }
 
     async fetchUserByEmail(email:string){

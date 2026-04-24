@@ -3,7 +3,8 @@ import { TOKENS } from "../../../helpers/tokens";
 import { Request,Response, NextFunction } from "express";
 import { UserService } from "../services/user.Service";
 import { HTTPSTATUS } from "../../../utils/https.config";
-
+import {userIdSchemaDto} from "../dtos/userDtos"
+import { UUID } from "crypto";
 
 @injectable()
 export class UserController {
@@ -12,15 +13,8 @@ export class UserController {
 
     fetchuserById = async (req:Request, res:Response, next:NextFunction):Promise<void> => {
                const {userId} = req.params
-               if(typeof userId != "string"){
-                res.status(HTTPSTATUS.BAD_REQUEST).json({
-                     message:"UserId must be valid string",
-                     success:false
-                })
-                return;
-               }
          try {
-               const result = await this.service.getUserByuserId(userId);
+               const result = await this.service.getUserByuserId(userId as UUID);
                res.status(HTTPSTATUS.OK).json({
                   message:"User fetch successfully",
                   success:true,

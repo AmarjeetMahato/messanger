@@ -17,10 +17,13 @@ import { generateEmailVerificationOTP, verifyOTP } from "../../../utils/token";
 import { CreateTokenInput } from "../../Token/dtos/tokenDto";
 import { UserService } from "../../Users/services/user.Service";
 import { RoleService } from "../../Role/services/role.Services";
+import { AuthMapper } from "../mapper/authMapper";
+import { IAuthService } from "./IAuthService";
+import { UUID } from "crypto";
 
 
 @injectable()
-export class AuthService{
+export class AuthService implements IAuthService {
 
     constructor(
       @inject(TOKENS.AuthRepository) private repo:AuthRepository,
@@ -41,17 +44,26 @@ export class AuthService{
            if(duplicateEmail){
               throw new AlreadyExistsException(Message.EMAIL_ALREADY_EXISTS)
            }  
-          
-           const result  = await this.repo.createUser(data,roleNames.roleId);
-           if(!result?.id){
-              throw new InternalServerException(Message.USER_CREATION_FAILED)
-           }
-   
+             // ✅ hash password
+             const hashedPassword = await bcrypt.hash(data.password, 10);
+            // ✅ Step 1: DTO → Entity
+           const createdEntity = AuthMapper.fromCreateDto({
+                             ...data,
+                             roleName:roleNames.roleId,
+                             password:hashedPassword
+           })
+             // ✅ Step 2: Entity → Persistence
+             const persistence  = AuthMapper.toPersistence(createdEntity)
+           const result  = await this.repo.createUser(persistence);
+
+             // ✅ Step 4: Row → Entity
+            const savedEntity = AuthMapper.toEntity(result);
+ 
            const {expiresAt,hashedOTP,rawOTP} = generateEmailVerificationOTP()
             const tokenData: CreateTokenInput = {
                     tokenHash: hashedOTP,
                     type: "email_verification",
-                    userId: result?.id,
+                    userId: savedEntity?.id,
                     otpGeneratedAt: new Date(),
                     otpExpiresAt: expiresAt,
                     lastOtpRequestedAt: new Date(),
@@ -65,21 +77,16 @@ export class AuthService{
     await this.emailService.sendVerificationEmail(data.email, rawOTP)
     .catch(err => console.error("Email failed:", err));
                       
-         return result;
+    return AuthMapper.toRegisterResponse(savedEntity)
         
     }
 
-   async verificationEmailWithToken(userId:string,Otp: string) {
-  if (!Otp) {
-    throw new UnauthorizedException("Otp is required");
-  }
-
+   async verificationEmailWithToken(userId:string,Otp: string):Promise<void>{
+    if (!Otp) {
+      throw new UnauthorizedException("Otp is required");
+    }
    const tokenRow = await this.tokenService.fetchOtp(Otp)
-
-  if (!tokenRow) {
-    throw new UnauthorizedException("OTP not found or already used");
-  }
-
+   
    // 2️⃣ Check if token is expired
   if (tokenRow.otpExpiresAt && new Date() > tokenRow.otpExpiresAt) {
     throw new UnauthorizedException("OTP has expired");
@@ -102,7 +109,7 @@ await this.tokenService.markTokenValidated(tokenRow?.tokenId);
   await this.tokenService.invalidateToken(userId, "email_verification", tokenRow.tokenId);
 
   // 4️⃣ Mark user as verified
-await this.userService.markedUserVerify(userId)
+await this.userService.markedUserVerify(userId as UUID)
 }
 
 

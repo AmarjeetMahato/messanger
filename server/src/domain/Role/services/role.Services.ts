@@ -1,26 +1,32 @@
 import { inject, injectable } from "tsyringe";
 import { TOKENS } from "../../../helpers/tokens";
 import { RoleRepository } from "../repository/role.Repository";
-import { roleSchemaDto } from "../dtos/roleDtos";
-import { BadRequestException, InternalServerException } from "../../../utils/Catch-error";
+import { RoleResponseDto, roleSchemaDto } from "../dtos/roleDtos";
+import { BadRequestException, ConflictExceptions, InternalServerException } from "../../../utils/Catch-error";
+import { IRoleService } from "./role.Service.Interface";
+import { RoleMapper } from "../mapper/roleMapper";
 
 @injectable()
-export class RoleService{
+export class RoleService implements IRoleService{
     constructor(@inject(TOKENS.RoleRepository) private roleRepo:RoleRepository){}
 
 
-    async createRole(data:roleSchemaDto){
+    async createRole(data:roleSchemaDto):Promise<RoleResponseDto>{
              if(!data){
                  throw new BadRequestException("Role is required");    
              }
-             const role = await this.roleRepo.createRole(data);
-             if(!role?.roleId){
-                throw new InternalServerException("Failed to create Roles")
+             const fetchRole = await this.roleRepo.fetchRoleByName(data.name)
+             if(!fetchRole){
+                  throw new ConflictExceptions("Role name already exists")
              }
-             return role;
+             const createEntity = RoleMapper.toCreateEntity(data)
+             const presistance = RoleMapper.toInsert(createEntity)
+             const role = await this.roleRepo.createRole(presistance);
+             const  entity = RoleMapper.toEntity(role)
+             return RoleMapper.toResponse(entity)
     }
 
-    async fetchRoleByName(name:string){
+    async fetchRoleByName(name:string):Promise<RoleResponseDto>{
           if(!name){
               throw new BadRequestException("Role name not provided")
           }
@@ -28,10 +34,11 @@ export class RoleService{
           if(!role?.roleId){
                throw new InternalServerException("Failed to fetch role name");   
           }
-          return role;
+             const  entity = RoleMapper.toEntity(role)
+             return RoleMapper.toResponse(entity)
     }
 
-    async deleteRole(roleId:string){
+    async deleteRole(roleId:string):Promise<void>{
            if(!roleId){
                  throw new BadRequestException("Role is required !");   
            }

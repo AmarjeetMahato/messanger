@@ -11,24 +11,45 @@ export class RoleController{
      constructor(@inject(TOKENS.RoleService) private service :RoleService){}
 
      createRole = async (req:Request, res:Response, next:NextFunction) : Promise<void> => {
-                const  parsed =  RoleSchema.safeParse(req.body);
-                if(!parsed.success){
-                    res.status(400).json({
-                          message:"Invalid Fields",
-                          success:false
-                    })
-                    return;
-                }
-
+   
             try {
-                   const  role = await this.service.createRole(parsed.data);
+                   const  role = await this.service.createRole(req.body);
                    res.status(HTTPSTATUS.CREATED).json({
-                      message:"",
+                      message:"Role Create Successfully",
                       success:true,
                       role
                    })
              } catch (error) {
                 next(error);
             }
+     }
+
+
+     fetchRoleById = async ( req: Request, res:Response,  next:NextFunction):Promise<void> =>{
+                   const {roleId} = req.params as {roleId : string}
+              try {
+                      const role = await this.service.fetchRoleByName(roleId)
+                       res.status(HTTPSTATUS.CREATED).json({
+                      message:"Role fetch Successfully",
+                      success:true,
+                      role
+                   })
+              } catch (error) {
+                 next(error);
+              }
+     }
+
+     deleteRoleById = async ( req: Request, res:Response,  next:NextFunction):Promise<void> =>{
+                   const {roleId} = req.params as {roleId : string}
+              try {
+                    await this.service.deleteRole(roleId)
+                       res.status(HTTPSTATUS.CREATED).json({
+                      message:"Role deleted Successfully",
+                      success:true,
+                      
+                   })
+              } catch (error) {
+                 next(error);
+              }
      }
 }

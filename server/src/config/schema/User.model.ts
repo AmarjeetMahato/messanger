@@ -1,7 +1,7 @@
 import { relations } from "drizzle-orm";
 import { 
-  pgTable, serial, text, timestamp, integer, 
-  index, uniqueIndex, varchar, boolean, jsonb, pgEnum, 
+  pgTable, text, timestamp, integer, 
+  index, uniqueIndex, varchar, boolean,
   uuid
 } from "drizzle-orm/pg-core";
 import { devices } from "./Device.model";
@@ -45,3 +45,8 @@ export const userRelations = relations(users, ({ many }) => ({
   participants: many(participants),   // user joins conversations
   messages: many(messages),           // user sends messages
 }));
+
+
+
+export type UserRow    = typeof users.$inferSelect;
+export type UserInsert = typeof users.$inferInsert;

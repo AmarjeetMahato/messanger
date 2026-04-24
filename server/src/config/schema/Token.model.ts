@@ -36,3 +36,7 @@ export const tokenRelations = relations(tokens, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+
+export type TokenRow    = typeof tokens.$inferSelect;
+export type TokenInsert = typeof tokens.$inferInsert;

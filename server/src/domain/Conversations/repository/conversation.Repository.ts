@@ -1,39 +1,42 @@
 import { inject, injectable } from "tsyringe";
 import { TOKENS } from "../../../helpers/tokens";
 import {type DbOrTx } from "../../../config/database";
-import { CreateDirectConversationDto } from "../dtos/conversationDto";
-import { conversations } from "../../../config/schema/Conversations.model";
+import { ConversationListItemDto, ConversationWithDetails, CreateDirectConversationDto } from "../dtos/conversationDto";
+import { conversations, ConversationsRow } from "../../../config/schema/Conversations.model";
 import { and, eq, inArray, sql,ne } from "drizzle-orm";
 import { participants } from "../../../config/schema/Participants.model";
 import { InternalServerException } from "../../../utils/Catch-error";
 import { users } from "../../../config/schema/User.model";
 import { messages } from "../../../config/schema/Messages.model";
 import { alias } from "drizzle-orm/pg-core";
+import { IConversationRepository } from "./conversation.Repository.Interface";
+import { UUID } from "crypto";
 
 
 @injectable()
-export class ConversationRepository{
-   
+export class ConversationRepository implements IConversationRepository{
+    
     constructor(@inject(TOKENS.DB) private db:DbOrTx){}
 
-    async findDirectConversation(userA:string, userB:string){
+async findDirectConversation(userA: string,userB: string): Promise<ConversationsRow | null> {
 
-        const [result] = await this.db.select({conversations:conversations?.id})
-                                   .from(conversations)
-                                  .innerJoin(participants,eq(participants.conversationId, conversations.id))
-                                  .where(inArray(participants.userId, [userA, userB]))
-                                   .groupBy(conversations.id)
-                                  .having(sql`count(*) = 2`)
-                                  .limit(1);
+const [result] = await this.db
+                           .select()
+                           .from(conversations)
+                           .innerJoin(
+                                     participants,
+                                     eq(participants.conversationId, conversations.id)
+                                      )
+                           .where(inArray(participants.userId, [userA, userB]))
+                           .groupBy(conversations.id)
+                           .having(sql`count(*) = 2`)
+                           .limit(1);
 
-            return result;                        
-    }
+  return result?.conversations ?? null;
+}
 
 
-  async createDirectConversationWithParticipants(
-  userA: string,
-  userB: string
-) {
+async createDirectConversationWithParticipants(userA: string,userB: string) :Promise<ConversationsRow> {
 
   return await this.db.transaction(async (tx) => {
 
@@ -67,14 +70,14 @@ export class ConversationRepository{
 }
 
 
-async getConversationById(ConvoId:string){
-       const [result] = await this.db.select().from(conversations)
-                                              .where(eq(conversations.id,ConvoId))
-                                              .limit(1);
-       return result;                                       
+async getConversationById(ConvoId:string) : Promise<ConversationsRow | null>{
+       return await this.db.select()
+                           .from(conversations)
+                           .where(eq(conversations.id,ConvoId))
+                           .then(row => row[0] || null)                                     
 }
 
-async fetchConversationByUserId(userId:string){
+async getUserConversationsWithDetails(userId:string): Promise<ConversationWithDetails[]>{
 
     // 1️⃣ Get all conversations current user participates in
     const convs = await this.db
@@ -124,12 +127,21 @@ async fetchConversationByUserId(userId:string){
         }
 
         return {
-          id: conv.conversationId,
-          type: conv.type,
-          title: conv.type === "group" ? conv.title : otherUser?.username,
-          avatar: conv.type === "group" ? null : otherUser?.avatar,
-          lastMessage,
-        };
+  id: conv.conversationId,
+  type: conv.type as "direct" | "group",
+
+  title:
+    conv.type === "group"
+      ? conv.title ?? null
+      : otherUser?.username ?? null,
+
+  avatar:
+    conv.type === "group"
+      ? null
+      : otherUser?.avatar ?? null,
+
+  lastMessage,
+};
       })
     );
 
@@ -137,7 +149,7 @@ async fetchConversationByUserId(userId:string){
 
 }
 
-async fetchConversationByUser_Id(userId: string) {
+async getUserConversationList(userId: string): Promise<ConversationListItemDto[]> {
 
   const p1 = alias(participants, "p1");
   const p2 = alias(participants, "p2");
@@ -148,22 +160,13 @@ async fetchConversationByUser_Id(userId: string) {
       username: users.username,
       avatarUrl: users.avatarUrl,
       lastMessage: messages.content,
-      createdAt: messages.createdAt
+      lastMessageCreatedAt: messages.createdAt,
     })
     .from(conversations)
-
-    // logged-in user
     .innerJoin(p1, eq(p1.conversationId, conversations.id))
-
-    // other participant
     .innerJoin(p2, eq(p2.conversationId, conversations.id))
-
-    // user table
     .innerJoin(users, eq(users.id, p2.userId))
-
-    // last message
     .leftJoin(messages, eq(messages.id, conversations.lastMessageId))
-
     .where(
       and(
         eq(p1.userId, userId),

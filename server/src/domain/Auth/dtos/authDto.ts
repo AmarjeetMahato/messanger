@@ -5,6 +5,7 @@ export const userIdSchema = z.object({
 })
 
 export const createUserSchema = z.object({
+  id:z.uuid().optional(),
   email: z.email("Invalid email format").max(255),
   password: z.string()
     .min(8, "Password must be at least 8 characters")
@@ -36,6 +37,27 @@ export const loginSchema = z.object({
     .string()
     .min(1, { message: "Password is required" }),
 }).strict();
+
+
+export type LoginResponseDto = {
+  accessToken: string;
+  refreshToken: string;
+  user: {
+    id: string;
+    email: string;
+    username: string;
+    fullName: string | null;
+    avatarUrl: string | null;
+    roleId: string;
+    isVerified: boolean;
+  };
+};
+
+
+export type RegisterResponseDto = {
+  email: string;
+  requiresVerification: boolean;
+};
 
 
 export type CreateUserSchemaDto = z.infer<typeof createUserSchema>

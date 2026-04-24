@@ -1,55 +1,53 @@
 import { inject, injectable } from "tsyringe";
 import { TOKENS } from "../../../helpers/tokens";
 import {type DbOrTx } from "../../../config/database";
-import {  users } from "../../../config/schema/User.model";
+import {  UserRow, users } from "../../../config/schema/User.model";
 import { eq, sql } from "drizzle-orm";
+import { IUserRepository, PaginatedUsersResponse } from "./user.Repository.Interface";
+import { UUID } from "crypto";
 
 @injectable()
-export class UserRepositoy {
+export class UserRepositoy implements IUserRepository {
     
     constructor(@inject(TOKENS.DB) private db:DbOrTx){}
 
-    async markUserVerified(userId:string){
+    async markUserVerified(userId:UUID): Promise<boolean>{
          const [result] = await this.db.update(users)
                                     .set({isVerified:true})
+                                    .where(eq(users.id, userId))
                                     .returning();
-         return result;                           
+         return !!result;                           
                                      
     }
 
-    async getUserById(userId:string){
-           const [result] = await this.db.select().from(users)
+    async getUserById(userId:UUID):Promise<UserRow | null>{
+           return  await this.db.select().from(users)
                                       .where(eq(users.id, userId))
-                                      .limit(1);
-            return result;                           
+                                      .then(row => row[0] || null)
+                                      
     }
 
-    async getAllUsers(limit: number,page:number){
+async getAllUsers(limit: number,page: number): Promise<PaginatedUsersResponse> {
 
-          const offset = (page - 1) * limit;
-
-        const allUsers = await this.db.select().from(users)
-                                   .limit(limit)
-                                   .offset(offset)
-
-        const [result] = await this.db.select({count:sql<number>`count(*)`}) 
-                                            .from(users) 
-        
-        if (!result) {
-                  return null;
-               }
-
-        const totalPages = Math.ceil(result?.count/limit)  
-        
-      return {
-        data:allUsers,
-          pagination: {
-      total: result.count,
+  const offset = (page - 1) * limit;
+  const allUsers = await this.db
+    .select()
+    .from(users)
+    .limit(limit)
+    .offset(offset);
+  const [countResult] = await this.db
+    .select({ count: sql<number>`count(*)` })
+    .from(users);
+  const total = countResult?.count ?? 0; // ✅ fix undefined
+  const totalPages = Math.ceil(total / limit);
+  return {
+    data: allUsers,
+    pagination: {
+      total,
       page,
       limit,
       totalPages,
     },
-      }
-
-    }
+  };
+}
 }

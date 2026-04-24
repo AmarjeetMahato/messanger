@@ -35,6 +35,8 @@ export class  AuthControllers {
     }
 
     loginUser = async (req:Request, res:Response, next:NextFunction) :Promise<void> => {
+                    console.log(req.body);
+                    
                     const parsed = loginSchema.safeParse(req.body);
                if(!parsed.success){
                 res.status(400).json({message:"Invalid fields"})
@@ -56,7 +58,7 @@ export class  AuthControllers {
                 try {
                         const otp = req.body;
                         const {userId} = req.params;
-                        const result = await this.service.verificationEmailWithToken("userId",otp);
+                        await this.service.verificationEmailWithToken("userId",otp);
                          res.status(HTTPSTATUS.CREATED).json({
                               message:"Email verified successfully",
                               success:true

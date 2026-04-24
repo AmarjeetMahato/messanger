@@ -27,3 +27,9 @@ export const roles = pgTable("roles", {
 export const roleRelations = relations(roles, ({ many }) => ({
   userRoles: many(userRoles),
 }));
+
+
+
+export type RolesRow    = typeof roles.$inferSelect;
+export type RolesInsert = typeof roles.$inferInsert;
+

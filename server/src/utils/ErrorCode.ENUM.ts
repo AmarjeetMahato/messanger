@@ -5,8 +5,10 @@ const enum Message {
   ACCESS_UNAUTHORIZED = "ACCESS_UNAUTHORIZED",
   TOO_MANY_REQUESTS="TOO_MANY_REQUESTS",
 
+  CONFLICT_ERROR="Resource already exits",
+  
   USER_CREATION_FAILED = "Failed to create user",
-
+  
   EMAIL_ALREADY_EXISTS="Email already exits",
   INVALID_CREDENTIALS = "Invalid credentials",
   EMAIL_NOT_VERIFIED = "Email not verified",

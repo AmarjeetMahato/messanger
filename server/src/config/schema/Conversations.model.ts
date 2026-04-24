@@ -44,3 +44,7 @@ export const conversationRelations = relations(conversations, ({ many, one }) =>
     references: [users.id],
   }),
 }));
+
+
+export type ConversationsRow    = typeof conversations.$inferSelect;
+export type ConversationsInsert = typeof conversations.$inferInsert;

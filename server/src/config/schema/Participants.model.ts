@@ -43,3 +43,8 @@ export const participantRelations = relations(participants, ({ one }) => ({
     references: [conversations.id],
   }),
 }));
+
+
+
+export type ParticipantsRow    = typeof participants.$inferSelect;
+export type ParticipantsInsert = typeof participants.$inferInsert;
