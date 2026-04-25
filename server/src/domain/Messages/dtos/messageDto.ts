@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+export const createMessageSchemaParams = z.object({
+    conversationId:z.uuid({ message:"Invalid message Id"})
+})
 export const createMessageSchema = z.object({
   conversationId: z.uuid("Invalid conversation ID"),
   senderId: z.uuid("Invalid sender ID"),
