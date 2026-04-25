@@ -1,29 +1,19 @@
 import {Request,Response,NextFunction} from "express"
 import { inject, injectable } from "tsyringe";
 import { TOKENS } from "../../../helpers/tokens";
-import { MessageServices } from "../services/message.Services";
+import type { IMessageService } from "../services/message.service.Interface";
+import { HTTPSTATUS } from "../../../utils/https.config";
 
 @injectable()
 export class MessageController {
 
-  constructor(@inject(TOKENS.MessageServices) private service:MessageServices){}
+  constructor(@inject(TOKENS.MessageServices) private service:IMessageService){}
 
-     sendMessage = async (req: Request, res: Response, next: NextFunction) : Promise<void> => {
+  sendMessage = async (req: Request, res: Response, next: NextFunction) : Promise<void> => {
     try {
       const senderId = req.userId;
-        console.log("senderId ",senderId);
-       
-      const { conversationId, content } = req.body;
-
-      if (!senderId) {
-         res.status(400).json({ success: false, message: "Invalid user" });
-         return;
-      }
-       console.log("conversationId ", conversationId);
-       console.log("senderId ",senderId);
-       
-       
-      const message = await this.service.sendMessage(conversationId, senderId, content);
+      const { conversationId, content } = req.body;       
+      const message = await this.service.sendMessage(conversationId, senderId!, content);
       res.status(201).json({
         success: true,
         message: "Message sent",
@@ -66,6 +56,64 @@ export class MessageController {
     } catch (error) {
       next(error);
     }
+  }
+
+
+  markAsDelivered = async(req: Request, res: Response, next: NextFunction):Promise<void> => {
+
+          try {
+                      const {messageId} = req.params as {messageId:string} 
+
+                      const message = await this.service.markAsDelivered(messageId);
+                      res.status(HTTPSTATUS.OK).json({
+                         message:"Message is delivered",
+                         success: true,
+                         data: message
+                      })
+          } catch (error) {
+              next(error)
+          }
+  }
+
+  markAsRead = async(req: Request, res: Response, next: NextFunction):Promise<void> => {
+
+          try {
+                      const {messageId} = req.params as {messageId:string} 
+
+                      const message = await this.service.markAsRead(messageId);
+                      res.status(HTTPSTATUS.OK).json({
+                         message:"Message is delivered",
+                         success: true,
+                         data: message
+                      })
+          } catch (error) {
+              next(error)
+          }
+  }
+
+  updateMessage = async(req: Request, res: Response, next: NextFunction):Promise<void> => {
+                    const {messageId} = req.params as {messageId:string}
+                    const userId = req.userId
+             try {
+                        const result = await this.service.editMessage(messageId,userId!,req.body)
+             } catch (error) {
+                next(error)
+             }
+  }
+
+
+  deletedSoft = async (req:Request, res:Response, next: NextFunction): Promise<void> => {
+                     const {messageId} = req.params as {messageId:string} 
+                     const userId = req.userId
+             try {
+                     await this.service.deleteMessage(messageId, userId!);
+                     res.status(HTTPSTATUS.OK).json({
+                        message:"Message deleted successfully",
+                        success: true
+                     })
+             } catch (error) {
+                 next(error)
+             }
   }
     
 }

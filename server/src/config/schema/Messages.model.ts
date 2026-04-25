@@ -50,3 +50,7 @@ export const messageRelations = relations(messages, ({ one }) => ({
     references: [conversations.id],
   }),
 }));
+
+
+export type MessageRow    = typeof messages.$inferSelect;
+export type MessageInsert = typeof messages.$inferInsert;
