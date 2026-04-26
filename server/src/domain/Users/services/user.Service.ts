@@ -12,7 +12,7 @@ export class UserService implements IUserService {
     
     constructor(@inject(TOKENS.UserRepositoy) private repo:UserRepositoy){}
 
-    async markedUserVerify(userId: UUID): Promise<boolean> {
+    async markedUserVerify(userId: string): Promise<boolean> {
     if (!userId) {
           throw new BadRequestException("UserId is required");
   }

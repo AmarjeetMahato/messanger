@@ -13,9 +13,9 @@ export type PaginatedUsersResponse = {
 
 export interface IUserRepository {
          
-    markUserVerified(userId:UUID):Promise<boolean>;
+    markUserVerified(userId:string):Promise<boolean>;
 
-    getUserById(userId:UUID):Promise<UserRow | null>;
+    getUserById(userId:string):Promise<UserRow | null>;
 
     getAllUsers(limit: number,page:number):Promise<PaginatedUsersResponse>;
     

@@ -2,11 +2,14 @@ import { z } from 'zod';
 
 // Shared pieces to avoid repetition
 const deviceBase = {
-  deviceName: z.string().max(100).nullable(),
-  deviceType: z.enum(["mobile", "desktop", "tablet"]),
-  platform: z.enum(["ios", "android", "windows", "macos", "linux"]),
-  osVersion: z.string().max(20).nullable(),
-  browser: z.string().max(50).nullable(),
+  id: z.uuid().optional(),
+  fingerprint: z.string({message:"Fingerprint must be a string"}).min(1,{message:"Device fingerprint is required"}),
+  deviceName: z.string().max(100, {message:"Device name too long"}).nullable(),
+  deviceType: z.enum(["mobile", "desktop", "tablet"], {message:"Invalid device type"}),
+  platform: z.enum(["ios", "android", "windows", "macos", "linux"],{message:"Invalid platform"}),
+  osVersion: z.string().max(20,{message:"OS version too long"}).nullable(),
+  browser: z.string().max(50, {message:"Browser name too long"}).nullable(),
+  isBlocked:z.boolean().default(false),
   ipAddress: z.string().nullable(),
   userAgent: z.string().nullable(),
   pushToken: z.string().nullable(),
@@ -26,7 +29,6 @@ export const createDeviceZodSchema = z.object({
 
 
 export type DeviceFilterDTO = {
-  userId?: string;
   deviceType?: DeviceType;
   platform?: Platform;
   isTrusted?: boolean;
@@ -83,8 +85,8 @@ export const deviceAdminResponseSchema = z.object({
   createdAt: z.date().or(z.string()),
 });
 
-type Platform = z.infer<typeof PlatformEnum>;
-type DeviceType = z.infer<typeof DeviceTypeEnum>;
+export type Platform = z.infer<typeof PlatformEnum>;
+export type DeviceType = z.infer<typeof DeviceTypeEnum>;
 /**
  * Schema for Updating a Device
  */

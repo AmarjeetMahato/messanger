@@ -2,13 +2,13 @@ import { inject, injectable } from "tsyringe";
 import { TOKENS } from "../../../helpers/tokens";
 import { AuthRepository } from "../repository/auth.Repository";
 import { CreateUserSchemaDto, LoginUserDto } from "../dtos/authDto";
-import { AlreadyExistsException, BadRequestException, ForbiddenException, InternalServerException, NotFoundExceptions, TooManyRequestsException, UnauthorizedException } from "../../../utils/Catch-error";
+import { AlreadyExistsException, BadRequestException, ForbiddenException, InternalServerException,
+   NotFoundExceptions, TooManyRequestsException, UnauthorizedException } from "../../../utils/Catch-error";
 import { Message } from "../../../utils/ErrorCode.ENUM";
 import bcrypt from "bcryptjs"
 import { generateAccessToken, generateRefreshToken } from "../../../middleware/generateToken";
 import { AccessTokenPayload } from "../../../@types/jwt.types";
 import { Response,Request} from "express";
-import { DeviceService } from "../../Devices/services/device.service";
 import { CreateDeviceInput } from "../../Devices/Dtos/deviceDtos";
 import { parseDeviceInfo } from "../../../helpers/parseDeviceInfo";
 import { EmailService } from "./email.Service";
@@ -19,7 +19,9 @@ import { UserService } from "../../Users/services/user.Service";
 import { RoleService } from "../../Role/services/role.Services";
 import { AuthMapper } from "../mapper/authMapper";
 import { IAuthService } from "./IAuthService";
-import { UUID } from "crypto";
+import type { IDeviceService } from "../../Devices/services/device.service.Interface";
+import { email } from "zod";
+import type { ITokenService } from "../../Token/services/token.Service.Interface";
 
 
 @injectable()
@@ -27,9 +29,9 @@ export class AuthService implements IAuthService {
 
     constructor(
       @inject(TOKENS.AuthRepository) private repo:AuthRepository,
-      @inject(TOKENS.DeviceService) private deviceService:DeviceService,
+      @inject(TOKENS.DeviceService) private deviceService:IDeviceService,
       @inject(TOKENS.EmailService) private emailService:EmailService,
-      @inject(TOKENS.TokenService) private tokenService:TokenService,
+      @inject(TOKENS.TokenService) private tokenService:ITokenService,
       @inject(TOKENS.UserRepositoy) private userService: UserService,
       @inject(TOKENS.RoleService) private roleService:RoleService
    ){}
@@ -69,24 +71,20 @@ export class AuthService implements IAuthService {
                     lastOtpRequestedAt: new Date(),
                     validatedAt: null,
 };
-         const createToken =  await this.tokenService.createToken(tokenData)
-         console.log("createToken?.tokenHash",createToken?.tokenHash);
-         
+         const createToken =  await this.tokenService.createToken(tokenData)         
        // fire-and-forget async email
-
-    await this.emailService.sendVerificationEmail(data.email, rawOTP)
+    void await this.emailService.sendVerificationEmail(data.email, rawOTP)
     .catch(err => console.error("Email failed:", err));
                       
     return AuthMapper.toRegisterResponse(savedEntity)
         
     }
 
-   async verificationEmailWithToken(userId:string,Otp: string):Promise<void>{
-    if (!Otp) {
-      throw new UnauthorizedException("Otp is required");
-    }
-   const tokenRow = await this.tokenService.fetchOtp(Otp)
-   
+  async verificationEmailWithToken(userId:string,Otp: string, req:Request):Promise<void>{
+    if (!Otp) throw new UnauthorizedException("Otp is required");
+    
+     const tokenRow = await this.tokenService.fetchOtp(Otp)
+  
    // 2️⃣ Check if token is expired
   if (tokenRow.otpExpiresAt && new Date() > tokenRow.otpExpiresAt) {
     throw new UnauthorizedException("OTP has expired");
@@ -100,18 +98,58 @@ export class AuthService implements IAuthService {
 
    // Verify using raw OTP vs hashed OTP in DB
    const isValid  =  verifyOTP(Otp,tokenRow.tokenHash);
-   if (!isValid) {
-  throw new UnauthorizedException("Invalid OTP");
-    }
+   if (!isValid) throw new UnauthorizedException("Invalid OTP");
+    
 // ✅ Mark token as validated
-await this.tokenService.markTokenValidated(tokenRow?.tokenId);
+await this.tokenService.markTokenValidated(tokenRow?.tokenId!);
   // 4️⃣ Optional: Invalidate other pending email-verification tokens for the same user
-  await this.tokenService.invalidateToken(userId, "email_verification", tokenRow.tokenId);
+  await this.tokenService.invalidateToken(userId, "email_verification", tokenRow.tokenId!);
 
   // 4️⃣ Mark user as verified
-await this.userService.markedUserVerify(userId as UUID)
+await this.userService.markedUserVerify(userId!)
+
+    const  payload: AccessTokenPayload =  {
+            userId: req?.userId!,
+            email: req.user?.email!,
+            roles: req.user?.roles!
+          }
+
+          const accessToken = generateAccessToken(payload);
+         const refreshToken = generateRefreshToken(payload);
+ const fingerprint =
+  (req.headers["x-device-fingerprint"] as string) ||
+  req.body.fingerprint;
+
+if (!fingerprint) {
+  throw new BadRequestException("Device fingerprint is required");
 }
 
+
+   const deviceInfo = parseDeviceInfo(req); // 👈 call the function first       
+        const rawDeviceData : CreateDeviceInput = {
+  userId: tokenRow.userId, // must match DB type (uuid string OR number)
+  fingerprint: fingerprint,
+  refreshToken:refreshToken,
+  deviceName: `${deviceInfo.browser ?? "Unknown"} on ${deviceInfo.platform ?? "Unknown"}`,
+  deviceType: deviceInfo.deviceType as "mobile" | "desktop" | "tablet",
+  platform: deviceInfo.platform?.toLowerCase() as
+    | "ios"
+    | "android"
+    | "windows"
+    | "macos"
+    | "linux",
+  osVersion: deviceInfo.osVersion ?? null,
+  browser: deviceInfo.browser ?? null,
+  isBlocked:false,
+  ipAddress: req.ip ?? null,
+  userAgent: req.headers["user-agent"] ?? null,
+  pushToken: null,
+  isTrusted:false,
+  timezone: deviceInfo.timezone
+          };  
+
+await this.deviceService.registerDevice(userId,payload.email,rawDeviceData,)
+}
 
 async loginUser(data:LoginUserDto,req:Request, res:Response){
           const user = await this.repo.fetchUserByEmail(data.email)
@@ -147,11 +185,9 @@ async loginUser(data:LoginUserDto,req:Request, res:Response){
       // Optional: send email to user for info
          this.emailService.sendAccountBlockedEmail(user.email, blockedUntil);
 
-      throw new ForbiddenException(
-        `Account temporarily blocked due to multiple failed login attempts until ${blockedUntil.toISOString()}`
-      );
+      throw new ForbiddenException(`Account temporarily blocked due to multiple failed login attempts until ${blockedUntil.toISOString()}`);
 
-               }
+      }
                throw new UnauthorizedException(Message.INVALID_CREDENTIALS); 
           }
 
@@ -182,9 +218,19 @@ async loginUser(data:LoginUserDto,req:Request, res:Response){
                      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
                       });
 
+    const fingerprint =
+  (req.headers["x-device-fingerprint"] as string) ||
+  req.body.fingerprint;
+
+if (!fingerprint) {
+  throw new BadRequestException("Device fingerprint is required");
+}
+
+
         const deviceInfo = parseDeviceInfo(req); // 👈 call the function first       
         const rawDeviceData : CreateDeviceInput = {
   userId: user.id, // must match DB type (uuid string OR number)
+  fingerprint:fingerprint,
   refreshToken,
   deviceName: `${deviceInfo.browser ?? "Unknown"} on ${deviceInfo.platform ?? "Unknown"}`,
   deviceType: deviceInfo.deviceType as "mobile" | "desktop" | "tablet",
@@ -196,6 +242,7 @@ async loginUser(data:LoginUserDto,req:Request, res:Response){
     | "linux",
   osVersion: deviceInfo.osVersion ?? null,
   browser: deviceInfo.browser ?? null,
+  isBlocked:false,
   ipAddress: req.ip ?? null,
   userAgent: req.headers["user-agent"] ?? null,
   pushToken: null,
@@ -203,7 +250,7 @@ async loginUser(data:LoginUserDto,req:Request, res:Response){
   timezone: deviceInfo.timezone
           };  
 
-             this.deviceService.regiterUserDevice(rawDeviceData)            
+            await this.deviceService.registerDevice(user.id!,payload.email,rawDeviceData)            
              return ;         
     }
 

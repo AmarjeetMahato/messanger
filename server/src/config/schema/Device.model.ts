@@ -10,14 +10,17 @@ export const platformEnum = pgEnum("platform", ["ios", "android", "windows", "ma
 export const devices = pgTable("devices", {
   id: uuid().defaultRandom().primaryKey(),
   userId: uuid("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
-  
+
+  // 🔥 NEW (very important)
+  fingerprint: varchar("fingerprint", { length: 255 }).notNull(),
+
   // System Data
   deviceName: varchar("device_name", { length: 100 }), // e.g., "iPhone 15 Pro" or "Chrome on Windows"
   deviceType: deviceTypeEnum("device_type").notNull(),
   platform: platformEnum("platform").notNull(),
   osVersion: varchar("os_version", { length: 20 }),
   browser: varchar("browser", { length: 50 }),
-  
+  isBlocked: boolean("is_blocked").default(false),
   // Security Data
   ipAddress: varchar("ip_address", { length: 45 }), // Supports IPv6
   userAgent: text("user_agent"),
@@ -29,6 +32,7 @@ export const devices = pgTable("devices", {
   createdAt: timestamp("created_at").defaultNow(),
 }, (table) => [({
   userDeviceIdx: index("user_device_idx").on(table.userId),
+  fingerprintIdx: index("finger_print_idx").on(table.fingerprint),
   tokenLookupIdx: index("token_lookup_idx").on(table.refreshToken),
   lastActiveIdx: index("devices_last_active_idx").on(table.lastActive),
   browserIdx: index("browser").on(table.browser),

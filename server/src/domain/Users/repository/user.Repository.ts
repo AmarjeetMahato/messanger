@@ -11,7 +11,7 @@ export class UserRepositoy implements IUserRepository {
     
     constructor(@inject(TOKENS.DB) private db:DbOrTx){}
 
-    async markUserVerified(userId:UUID): Promise<boolean>{
+    async markUserVerified(userId:string): Promise<boolean>{
          const [result] = await this.db.update(users)
                                     .set({isVerified:true})
                                     .where(eq(users.id, userId))

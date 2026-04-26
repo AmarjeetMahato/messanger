@@ -108,13 +108,11 @@ static toUpdateEntity(input: UpdateTokenInput): Partial<TokenEntity> {
       tokenId: entity.tokenId,
       type: entity.type,
       userId: entity.userId,
-
+      tokenHash: entity.tokenHash,
       otpGeneratedAt: entity.otpGeneratedAt,
       otpExpiresAt: entity.otpExpiresAt,
-
       lastOtpRequestedAt: entity.lastOtpRequestedAt,
       validatedAt: entity.validatedAt,
-
       createdAt: entity.createdAt,
     };
   }

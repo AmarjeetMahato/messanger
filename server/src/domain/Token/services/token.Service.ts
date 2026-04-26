@@ -39,32 +39,28 @@ export class TokenService implements ITokenService{
           if(!userId){
                 throw new BadRequestException("User is required")
           }
-
-          const result = await this.repo.fetchOTPwithUserId(userId as UUID);
+          const result = await this.repo.fetchOTPwithUserId(userId);
           if(!result?.tokenId){
                  throw new NotFoundExceptions("OTP not found or already used");    
           }
-        
            const entity = TokenMapper.toEntity(result)
-
              // ─────────────────────────────
-  // 4. Check expiry
-  // ─────────────────────────────
-  if (entity.isExpired()) {
-    throw new BadRequestException("OTP has expired");
-  }
+            // 4. Check expiry
+           // ─────────────────────────────
+         if (entity.isExpired()) {
+             throw new BadRequestException("OTP has expired");
+              }
+          // ─────────────────────────────
+          // 5. Optional: check if already validated
+          // ─────────────────────────────
+          if (entity.isValidated()) {
+               throw new BadRequestException("OTP already used");
+             }
 
-  // ─────────────────────────────
-  // 5. Optional: check if already validated
-  // ─────────────────────────────
-  if (entity.isValidated()) {
-    throw new BadRequestException("OTP already used");
-  }
-
-      return TokenMapper.toResponse(entity);
+           return TokenMapper.toResponse(entity);
      }
 
-     async markTokenValidated(tokenId: UUID): Promise<boolean> {
+     async markTokenValidated(tokenId: string): Promise<boolean> {
 
   if (!tokenId) {
     throw new BadRequestException("TokenId is required");

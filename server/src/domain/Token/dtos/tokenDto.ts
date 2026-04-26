@@ -43,7 +43,7 @@ export const tokenResponseSchema = z.object({
   ]),
 
   userId: z.uuid(),
-
+  tokenHash: z.string(),
   otpGeneratedAt: z.date().nullable().optional(),
   otpExpiresAt: z.date().nullable().optional(),
   lastOtpRequestedAt: z.date().nullable().optional(),

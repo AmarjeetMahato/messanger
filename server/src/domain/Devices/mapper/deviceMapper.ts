@@ -11,14 +11,14 @@ export class DeviceMapper {
     return new DeviceEntity(
       row.id,
       row.userId,
-
+      row.fingerprint,
       row.deviceType,
       row.platform,
 
       row.deviceName ?? null,
       row.osVersion ?? null,
       row.browser ?? null,
-
+      row.isBlocked ?? false,
       row.ipAddress ?? null,
       row.userAgent ?? null,
       row.refreshToken ?? null,
@@ -38,16 +38,16 @@ export class DeviceMapper {
     userId: string
   ): DeviceEntity {
     return new DeviceEntity(
-      randomUUID(),
+       dto.id!,
       userId,
-
+      dto.fingerprint,
       dto.deviceType,
       dto.platform,
 
       dto.deviceName ?? null,
       dto.osVersion ?? null,
       dto.browser ?? null,
-
+      dto.isBlocked ?? false,
       dto.ipAddress ?? null,
       dto.userAgent ?? null,
       null, // refreshToken handled separately
@@ -96,7 +96,7 @@ export class DeviceMapper {
     return {
       id: entity.id,
       userId: entity.userId,
-
+      fingerprint: entity.fingerprint,
       deviceType: entity.deviceType,
       platform: entity.platform,
 

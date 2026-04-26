@@ -6,9 +6,9 @@ export interface ITokenRepository {
 
     createToken(data:TokenRow): Promise<TokenRow>;
 
-    fetchOTPwithUserId(userId:UUID):Promise<TokenRow | null >
+    fetchOTPwithUserId(userId:string):Promise<TokenRow | null >
 
-    markedTokenValidate(tokenId:UUID):Promise<boolean>;
+    markedTokenValidate(tokenId:string):Promise<boolean>;
 
       invalidateOtherTokens(userId: string,type: TokenType,excludeTokenId: string): Promise<TokenRow | null>;
 

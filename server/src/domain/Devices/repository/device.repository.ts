@@ -29,7 +29,12 @@ async registerDevice (device: DeviceEntity): Promise<DeviceEntity>{
  async findById(id: string): Promise<DeviceEntity | null> {
      const result =   await this.db.select()
                            .from(devices)
-                           .where(eq(devices.id,id))
+                           .where(
+                                and(
+                                    eq(devices.id,id),
+                                    eq(devices.isBlocked,false)
+                                )
+                          )
                            .then(row => row[0] || null)
                            
       return result ?  DeviceMapper.toEntity(result)  : null                  
@@ -39,7 +44,10 @@ async registerDevice (device: DeviceEntity): Promise<DeviceEntity>{
       const result = await this.db.select()
                                    .from(devices)
                                    .where(
-                                       eq(devices.userId, userId)
+                                       and(
+                                        eq(devices.userId, userId),
+                                       eq(devices.isBlocked,false)
+                                       )
                                    )
       return   result.map(DeviceMapper.toEntity)                            
   }

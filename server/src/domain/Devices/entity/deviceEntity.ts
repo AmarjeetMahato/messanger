@@ -2,7 +2,7 @@ export class DeviceEntity {
   constructor(
     public readonly id: string,
     public readonly userId: string,
-
+    public readonly fingerprint:string,
     // System Data
     public readonly deviceType: "mobile" | "desktop" | "tablet" | "web" | "smarttv",
     public readonly platform: "ios" | "android" | "windows" | "macos" | "linux" | "browser",
@@ -10,7 +10,8 @@ export class DeviceEntity {
     public deviceName: string | null,
     public osVersion: string | null,
     public browser: string | null,
-
+    
+    public isBlocked: boolean,
     // Security Data
     public ipAddress: string | null,
     public userAgent: string | null,
@@ -36,6 +37,10 @@ export class DeviceEntity {
   updateRefreshToken(token: string) {
     this.refreshToken = token;
     this.markActive();
+  }
+
+  isDeviceBlocked(){
+    return this.isBlocked
   }
 
   removeRefreshToken() {

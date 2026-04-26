@@ -58,7 +58,7 @@ export class  AuthControllers {
                 try {
                         const otp = req.body;
                         const {userId} = req.params;
-                        await this.service.verificationEmailWithToken("userId",otp);
+                        await this.service.verificationEmailWithToken("userId",otp,req);
                          res.status(HTTPSTATUS.CREATED).json({
                               message:"Email verified successfully",
                               success:true
