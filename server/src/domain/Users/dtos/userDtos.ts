@@ -2,7 +2,7 @@ import { z } from "zod";
 
 
 export const userIdSchema = z.object({
-    userId: z.uuid()
+    userId: z.uuid({ message:"Invalid user Id"})
 })
 
 export const userResponseSchema = z.object({

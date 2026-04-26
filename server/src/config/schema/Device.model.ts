@@ -43,3 +43,8 @@ export const deviceRelations = relations(devices, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+
+
+export type DeviceRow    = typeof devices.$inferSelect;
+export type DeviceInsert = typeof devices.$inferInsert;
