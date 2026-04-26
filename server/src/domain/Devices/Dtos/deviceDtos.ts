@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+export const createDeviceZodSchemaParams = z.object({
+     id: z.uuid({message:"Invalid device Id"})
+})
 // Shared pieces to avoid repetition
 const deviceBase = {
   id: z.uuid().optional(),

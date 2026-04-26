@@ -126,7 +126,7 @@ export class DeviceController{
 
      searchDevices = async (req:Request, res:Response, next:NextFunction) : Promise<void> => {
              const userId = req.userId;
-                       const params: DeviceFilterDTO = {};
+             const params: DeviceFilterDTO = {};
 
     if (req.query.deviceType) {
       params.deviceType = req.query.deviceType as DeviceType;
@@ -155,7 +155,7 @@ export class DeviceController{
                            
        try {
                         const userId = req.userId
-                        const result = await this.service.findByUserAndFingerprint(userId!,req.body);
+                        const result = await this.service.findByUserAndFingerprint(userId!,req.body as string);
                         res.status(HTTPSTATUS.OK).json({
                              message:" device fetch successfully",
                              success:false,
