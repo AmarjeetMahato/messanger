@@ -1,44 +1,93 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
-export const verifyToken = (req: Request, res: Response, next: NextFunction) => {
-     
-           
+export const verifyToken = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
-
     const token = req.cookies?.accessToken;
     // console.log("token ", token);
-    
+
     if (!token) {
       return res.status(401).json({
         success: false,
-        message: 'Access token is required',
+        message: "Access token is required",
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET!) as { userId: string };
+    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET!) as {
+      userId: string;
+    };
 
     req.userId = decoded.userId; // ✅ Now TypeScript is happy
 
     next();
   } catch (error: any) {
-    if (error.name === 'TokenExpiredError') {
+    if (error.name === "TokenExpiredError") {
       return res.status(401).json({
         success: false,
-        message: 'Access token has expired',
+        message: "Access token has expired",
       });
     }
 
-    if (error.name === 'JsonWebTokenError') {
+    if (error.name === "JsonWebTokenError") {
       return res.status(403).json({
         success: false,
-        message: 'Invalid access token',
+        message: "Invalid access token",
       });
     }
 
     return res.status(500).json({
       success: false,
-      message: 'Token verification failed',
+      message: "Token verification failed",
+      error: error.message,
+    });
+  }
+};
+
+export const verifyUserToken = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const token = req.cookies?.verificationToken;
+    console.log("token ", token);
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "verification token is required",
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET!) as {
+      userId: string;
+    };
+
+    req.userId = decoded.userId; // ✅ Now TypeScript is happy
+
+    next();
+  } catch (error: any) {
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({
+        success: false,
+        message: "Access token has expired",
+      });
+    }
+
+    if (error.name === "JsonWebTokenError") {
+      return res.status(403).json({
+        success: false,
+        message: "Invalid access token",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Token verification failed",
       error: error.message,
     });
   }

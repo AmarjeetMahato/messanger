@@ -3,23 +3,43 @@ import { container } from "tsyringe";
 import { ConversationsController } from "../domain/Conversations/controllers/conversations.Controller";
 import { verifyToken } from "../middleware/tokenVerification";
 import { validateRequest } from "../middleware/zodValidations";
-import { CreateDirectConversationParams, CreateDirectConversationSchema } from "../domain/Conversations/dtos/conversationDto";
-
+import {
+  CreateDirectConversationParams,
+  CreateDirectConversationSchema,
+} from "../domain/Conversations/dtos/conversationDto";
 
 const router = express.Router();
 
-const conversationController =  container.resolve(ConversationsController);
+const conversationController = container.resolve(ConversationsController);
 
+router.get(
+  "/sidebar",
+  verifyToken,
+  conversationController.getSidebarConversations,
+);
 
-router.get("/sidebar", verifyToken, conversationController.getSidebarConversations)
+router.get(
+  "/get_user_convo_list",
+  verifyToken,
+  conversationController.getUserConversationList,
+);
 
-router.get("/get_user_convo_list",verifyToken,conversationController.getUserConversationList)
+router.post(
+  "/create",
+  verifyToken,
+  validateRequest({
+    body: CreateDirectConversationSchema,
+  }),
+  conversationController.createConversation,
+);
 
-router.post("/create",verifyToken, validateRequest({
-       body: CreateDirectConversationSchema}), conversationController.createConversation);
-
-router.get("/:convoId",verifyToken,validateRequest({
-       params:CreateDirectConversationParams
-}), conversationController.fetchConversationById)
+router.get(
+  "/fetch_convo_by_userId/:convoId",
+  verifyToken,
+  validateRequest({
+    params: CreateDirectConversationParams,
+  }),
+  conversationController.fetchConversationById,
+);
 
 export default router;

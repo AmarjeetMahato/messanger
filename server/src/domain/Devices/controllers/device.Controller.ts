@@ -165,7 +165,4 @@ export class DeviceController{
          next(error)
        }
      }
-
-
-
  }

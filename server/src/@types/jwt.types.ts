@@ -1,9 +1,12 @@
-
 // types/jwt.types.ts
 export interface AccessTokenPayload {
   userId: string;
   email: string;
-  roles?: string[];
+  roles: string;
+}
+
+export interface UserVerificationPayload {
+  userId: string;
 }
 
 export interface RefreshTokenPayload {
