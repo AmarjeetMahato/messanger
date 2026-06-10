@@ -1,49 +1,47 @@
+export const TOKENS = {
+  DB: Symbol("DB"),
 
+  //  Email
+  EmailService: Symbol("EmailService"),
 
-export const  TOKENS ={
+  // Roles
+  RoleController: Symbol("RoleController"),
+  RoleRepository: Symbol("RoleRepository"),
+  RoleService: Symbol("RoleService"),
 
-     DB: Symbol("DB"),
+  // Auth
+  AuthRepository: Symbol("AuthRepository"),
+  AuthService: Symbol("AuthService"),
+  AuthControllers: Symbol("AuthRepository"),
 
-    //  Email
-    EmailService:Symbol("EmailService"),
+  // Device
+  DeviceRepository: Symbol("DeviceRepository"),
+  DeviceService: Symbol("DeviceService"),
+  DeviceController: Symbol("DeviceController"),
 
-    // Roles
-    RoleController:Symbol("RoleController"),
-    RoleRepository:Symbol("RoleRepository"),
-    RoleService:Symbol("RoleService"),
+  // Tokens
+  TokenRepository: Symbol("TokenRepository"),
+  TokenService: Symbol("TokenService"),
 
+  // Users
+  UserRepositoy: Symbol("UserRepositoy"),
+  UserService: Symbol("UserService"),
+  UserController: Symbol("UserController"),
 
-    // Auth
-    AuthRepository:Symbol("AuthRepository"),
-    AuthService:Symbol("AuthService"),
-    AuthControllers:Symbol("AuthRepository"), 
+  // Participants
+  ParticipantsController: Symbol("ParticipantsController"),
+  ParticipantsRepository: Symbol("ParticipantsRepository"),
+  ParticipantsService: Symbol("ParticipantsService"),
 
-    // Device
-    DeviceRepository:Symbol("DeviceRepository"),
-    DeviceService:Symbol("DeviceService"),
-    DeviceController:Symbol("DeviceController"),
+  // Messages
+  MessageController: Symbol("MessageController"),
+  MessageRepository: Symbol("MessageRepository"),
+  MessageServices: Symbol("MessageServices"),
 
-    // Tokens
-    TokenRepository:Symbol("TokenRepository"),
-    TokenService:Symbol("TokenService"),
+  // Conversations
+  ConversationRepository: Symbol("ConversationRepository"),
+  ConversationsController: Symbol("ConversationsController"),
+  ConversationServices: Symbol("ConversationServices"),
 
-    // Users
-    UserRepositoy: Symbol("UserRepositoy"),
-    UserService : Symbol("UserService"),
-    UserController : Symbol("UserController"),
-
-    // Participants
-    ParticipantsController:Symbol("ParticipantsController"),
-    ParticipantsRepository:Symbol("ParticipantsRepository"),
-    ParticipantsService: Symbol("ParticipantsService"),
-
-    // Messages
-    MessageController:Symbol("MessageController"),
-    MessageRepository:Symbol("MessageRepository"),
-    MessageServices : Symbol("MessageServices"),
-
-    // Conversations
-    ConversationRepository:Symbol("ConversationRepository"),
-    ConversationsController:Symbol("ConversationsController"),
-    ConversationServices: Symbol("ConversationServices")
-}
+  UserCacheService: Symbol("UserCacheService"),
+};

@@ -31,6 +31,8 @@ import type { IDeviceService } from "../../Devices/services/device.service.Inter
 import type { ITokenService } from "../../Token/services/token.Service.Interface";
 import type { IRoleService } from "../../Role/services/role.Service.Interface";
 import type { IUserService } from "../../Users/services/user.Service.Interface";
+import type { IUserCacheService } from "../../../redis/redisService/UserCacheService";
+import { UserProfile } from "../../../@types/UserProfile";
 
 @injectable()
 export class AuthService implements IAuthService {
@@ -41,6 +43,8 @@ export class AuthService implements IAuthService {
     @inject(TOKENS.TokenService) private tokenService: ITokenService,
     @inject(TOKENS.UserRepositoy) private userService: IUserService,
     @inject(TOKENS.RoleService) private roleService: IRoleService,
+    @inject(TOKENS.UserCacheService)
+    private userCacheService: IUserCacheService,
   ) {}
 
   async createUser(data: CreateUserSchemaDto, res: Response) {
@@ -65,6 +69,18 @@ export class AuthService implements IAuthService {
     // ✅ Step 2: Entity → Persistence
     const persistence = AuthMapper.toPersistence(createdEntity);
     const result = await this.repo.createUser(persistence);
+
+    const userProfile = {
+      id: result?.id,
+      email: result?.email,
+      username: result?.username,
+      fullName: result?.fullName,
+      avatarUrl: result?.avatarUrl,
+      isVerified: result?.isVerified,
+      lastSeen: result?.lastSeen,
+    };
+
+    await this.userCacheService.cacheUser(userProfile);
 
     // ✅ Step 4: Row → Entity
     const savedEntity = AuthMapper.toEntity(result);
@@ -314,17 +330,27 @@ export class AuthService implements IAuthService {
     return;
   }
 
-  async fetchUser(userId: string) {
+  async fetchUser(userId: string): Promise<UserProfile> {
     if (!userId) {
       throw new BadRequestException("User is required");
     }
-    const result = await this.repo.fetchUserByUserId(userId);
-    if (!result?.id) {
-      throw new InternalServerException("Failed to fetch users");
+
+    // 1. Check Redis
+    const cachedUser = await this.userCacheService.getUser(userId);
+
+    if (cachedUser) {
+      return cachedUser;
     }
 
-    // Manually pick the safe fields
-    const userProfile = {
+    // 2. Fetch from DB
+    const result = await this.repo.fetchUserByUserId(userId);
+
+    if (!result?.id) {
+      throw new NotFoundExceptions("User not found");
+    }
+
+    // 3. Create profile DTO
+    const userProfile: UserProfile = {
       id: result.id,
       email: result.email,
       username: result.username,
@@ -333,6 +359,11 @@ export class AuthService implements IAuthService {
       isVerified: result.isVerified,
       lastSeen: result.lastSeen,
     };
+
+    // 4. Cache it
+    await this.userCacheService.cacheUser(userProfile);
+
+    // 5. Return
     return userProfile;
   }
 
