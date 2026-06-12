@@ -1,4 +1,3 @@
-
 export interface RequestRegisterUserDto {
   email: string;
   password: string;
@@ -9,22 +8,27 @@ export interface RequestRegisterUserDto {
   mfaEnabled?: boolean;
 }
 
-export interface ResponseAuthDto{
-       message:string,
-       success:boolean,
+export interface ResponseAuthDto {
+  message: string;
+  success: boolean;
 }
 
-export interface VerifyEmailWithOTP{
-       otp:number;
+export interface VerifyEmailWithOTP {
+  otp: string;
 }
 
-export interface LoginUserDto{
-    email:string,
-    password:string
+export interface LoginUserDto {
+  email: string;
+  password: string;
+  fingerprint: string;
 }
 
+export interface LogoutResponse {
+  message: string;
+  success: boolean;
+}
 
-export interface LogoutResponse{
-       message:string,
-       success:boolean
+export interface ApiResponse {
+  success: boolean;
+  message: string;
 }

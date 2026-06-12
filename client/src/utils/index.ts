@@ -1,4 +1,5 @@
 import { format, isToday, isYesterday } from "date-fns";
+import FingerprintJS from "@fingerprintjs/fingerprintjs";
 
 export const formatSidebarTime = (timestamp?: string | null) => {
   if (!timestamp) return ""; // return empty string if no timestamp
@@ -13,4 +14,27 @@ export const formatSidebarTime = (timestamp?: string | null) => {
     return "Yesterday";
   }
   return format(date, "dd/MM/yy"); // e.g., 14/03/26
+};
+
+
+
+let cachedFingerprint: string | null = null;
+
+export const getDeviceFingerprint = async () => {
+  if (cachedFingerprint) return cachedFingerprint;
+
+  const stored = localStorage.getItem("fp");
+  if (stored) {
+    cachedFingerprint = stored;
+    return stored;
+  }
+
+  const fp = await FingerprintJS.load();
+  const result = await fp.get();
+
+  cachedFingerprint = result.visitorId;
+
+  localStorage.setItem("fp", cachedFingerprint);
+
+  return cachedFingerprint;
 };

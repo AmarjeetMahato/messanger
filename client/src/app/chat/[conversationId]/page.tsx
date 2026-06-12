@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import Navbar from "@/components/Navbar";
 import ChatArea from "../components/ChatArea";
@@ -7,13 +7,14 @@ import { Contact, Conversation } from "@/@types/ConversationTypes";
 import { useParams } from "next/navigation";
 import { useEffect } from "react";
 import { socket } from "@/socket/socket";
+import { useGetMeQuery } from "@/redux/rest-api/userApi";
 
 export default function ChatPage() {
-
-    const params = useParams();
+  const params = useParams();
   const conversationId = params?.conversationId as string;
-    const { data } = useFetchUserConversationQuery();
-
+  const { data: userData } = useGetMeQuery();
+  const userId = userData?.data?.id;
+  const { data, isLoading } = useFetchUserConversationQuery(userId!);
   const contacts: Contact[] =
     data?.data?.map((c: Conversation) => ({
       id: c.id,
@@ -26,31 +27,29 @@ export default function ChatPage() {
       color: "#9b59b6",
     })) ?? [];
 
-    useEffect(()=>{
-       if(!conversationId) return;
-       socket.emit("chat:room", conversationId,(err?:string)=>{
-           if(err){
-                  console.error("Failed to join chat:", err);
-           }else{
-               console.error("Failed to join chat:", err);
-           }
-       })
-       return ()=>{
-          socket.emit("chat:leave", conversationId)
-       }
-    },[conversationId])
-
+  useEffect(() => {
+    if (!conversationId) return;
+    socket.emit("chat:room", conversationId, (err?: string) => {
+      if (err) {
+        console.error("Failed to join chat:", err);
+      } else {
+        console.error("Failed to join chat:", err);
+      }
+    });
+    return () => {
+      socket.emit("chat:leave", conversationId);
+    };
+  }, [conversationId]);
 
   const activeConversation = contacts.find(
-    (c) => c.id === params.conversationId
+    (c) => c.id === params.conversationId,
   );
   return (
-        <div className="flex flex-col h-screen">
-       <div className="flex-none">
-          <Navbar conversation={activeConversation} />
+    <div className="flex flex-col h-screen">
+      <div className="flex-none">
+        <Navbar conversation={activeConversation} chatId={conversationId} />
       </div>
-          <ChatArea conversationId={conversationId} />;
-        </div>
-  )
-  
+      <ChatArea conversationId={conversationId} />;
+    </div>
+  );
 }
