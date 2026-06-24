@@ -1,80 +1,54 @@
 /* eslint-disable @next/next/no-page-custom-font */
 "use client";
-
-import {
-  useGetMessagesQuery,
-  useSendMessagesMutation,
-} from "@/redux/rest-api/messageAPI";
-import { useGetMeQuery } from "@/redux/rest-api/userApi";
-import { useState, useRef, useEffect, useMemo } from "react";
+import { Paperclip, Smile, Send, Mic } from "lucide-react";
+import { Conversation } from "@/@types/ConversationTypes";
+import { RawMessage, Message } from "@/@types/MessageTypes";
+import { User } from "@/@types/UserType";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, CheckCheck, Reply, MoreHorizontal } from "lucide-react";
 import { socket } from "@/socket/socket";
-import { RawMessage } from "@/@types/MessageTypes";
+import { useSendMessagesMutation } from "@/redux/rest-api/messageAPI";
+import Image from "next/image";
 
-interface Message {
-  id: string;
-  text: string;
-  sender: "me" | "other";
-  time: string;
-  status?: "sent" | "delivered" | "read";
-  reactions?: string[];
+export interface ChatAreaProps {
+  currentUser: User;
+  conversations: Conversation[];
+  initialMessages: RawMessage[];
+  conversationId: string;
+}
+
+interface StatusTickProps {
+  status?: Message["status"];
 }
 
 const EMOJI_LIST = ["❤️", "😂", "😮", "😢", "👍", "🙏"];
 
-const StatusTick = ({ status }: { status?: Message["status"] }) => {
+export const StatusTick = ({ status }: StatusTickProps) => {
   if (!status) return null;
-  if (status === "sent")
-    return (
-      <svg
-        width="14"
-        height="14"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="text-white/40"
-      >
-        <polyline points="20 6 9 17 4 12" />
-      </svg>
-    );
-  if (status === "delivered")
-    return (
-      <svg
-        width="16"
-        height="14"
-        viewBox="0 0 28 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="text-white/40"
-      >
-        <polyline points="24 6 11 17 6 12" />
-        <polyline points="17 6 11 11" />
-      </svg>
-    );
-  return (
-    <svg
-      width="16"
-      height="14"
-      viewBox="0 0 28 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="text-indigo-400"
-    >
-      <polyline points="24 6 11 17 6 12" />
-      <polyline points="17 6 11 11" />
-    </svg>
-  );
+
+  switch (status) {
+    case "sent":
+      return <Check size={14} className="text-white/40" />;
+
+    case "delivered":
+      return <CheckCheck size={14} className="text-white/40" />;
+
+    case "read":
+      return <CheckCheck size={14} className="text-indigo-400" />;
+
+    default:
+      return null;
+  }
 };
 
-const ChatArea = ({ conversationId }: { conversationId: string }) => {
+const dateLabel = "Today";
+
+const ChatArea = ({
+  currentUser,
+  conversations,
+  initialMessages,
+  conversationId,
+}: ChatAreaProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [rawMessage, setRawMessage] = useState<RawMessage[]>([]);
   const [socketMessages, setSocketMessages] = useState<RawMessage[]>([]);
@@ -84,13 +58,42 @@ const ChatArea = ({ conversationId }: { conversationId: string }) => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { data } = useGetMeQuery();
-  const currentUserId = data?.data?.id;
+  // console.log("conversations Id ", conversationId);
 
-  const { data: messageData, isLoading } = useGetMessagesQuery(conversationId);
+  // console.log("initialMessages ", initialMessages);
+  // console.log("currentUser ", currentUser);
 
-  console.log("messageData ", messageData);
-  const apiMessages = messageData?.data?.messages ?? [];
+  // console.log(" conversations ", conversations);
+
+  const senderId = initialMessages?.[0]?.senderId;
+
+  const [sendMessages] = useSendMessagesMutation();
+
+  useEffect(() => {
+    if (!conversationId || !socket) return;
+
+    // 1️⃣ Function jo room join karega
+    const joinChatRoom = () => {
+      console.log(`Attempting to join room: chat:${conversationId}`);
+      socket.emit("room:join", `chat:${conversationId}`);
+    };
+
+    // 2️⃣ Agar socket already connected hai, toh turant join karo
+    if (socket.connected) {
+      joinChatRoom();
+    }
+
+    // 3️⃣ 🔥 REFRESH FIX: Agar page refresh hua aur baad me reconnect hua,
+    // toh reconnect hote hi auto-join ho jayega.
+    socket.on("connect", joinChatRoom);
+
+    return () => {
+      // Cleanup hooks
+      socket.off("connect", joinChatRoom);
+      socket.emit("room:leave", `chat:${conversationId}`);
+      console.log(`Left room: chat:${conversationId}`);
+    };
+  }, [conversationId]);
 
   // 1️⃣ Listen to new messages from socket
   useEffect(() => {
@@ -101,7 +104,12 @@ const ChatArea = ({ conversationId }: { conversationId: string }) => {
       chatId: string;
       message: RawMessage;
     }) {
-      if (chatId !== conversationId) return;
+      // 🔍 Sabse pehle poora data log karke dekho aa kya raha hai
+      console.log("Raw Socket Data Received:", message);
+      if (chatId !== conversationId) {
+        console.log(`Mismatch! Expected ${conversationId} but got ${chatId}`);
+        return;
+      }
 
       setSocketMessages((prev) => {
         const exists = prev.some((m) => m.id === message.id);
@@ -118,10 +126,8 @@ const ChatArea = ({ conversationId }: { conversationId: string }) => {
     };
   }, [conversationId]);
 
-  // console.log("rawMessage ", rawMessage);
-
   const rawMessages = useMemo(() => {
-    const merged = [...apiMessages, ...socketMessages];
+    const merged = [...initialMessages, ...socketMessages];
 
     const uniqueMessages = new Map(
       merged.map((message) => [message.id, message]),
@@ -131,27 +137,29 @@ const ChatArea = ({ conversationId }: { conversationId: string }) => {
       (a, b) =>
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     );
-  }, [apiMessages, socketMessages]);
+  }, [socketMessages, initialMessages]);
 
   const chatMessages = useMemo(() => {
     return rawMessages.map((msg) => ({
       id: msg.id,
       text: msg.content ?? "",
-      sender: msg.senderId === currentUserId ? "me" : "other",
+      sender: msg.senderId === currentUser.id ? "me" : "other",
       time: new Date(msg.createdAt).toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
       }),
       status: msg.status,
     }));
-  }, [rawMessages, currentUserId]);
-
-  console.log("chatMessage ", chatMessages);
+  }, [rawMessages, currentUser.id]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-  const [sendMessages] = useSendMessagesMutation();
+    // Thoda sa timeout dena safe rehta hai taaki DOM element render ho chuka ho
+    const timeoutId = setTimeout(() => {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [chatMessages]);
 
   const sendMessage = async () => {
     const text = input.trim();
@@ -162,21 +170,15 @@ const ChatArea = ({ conversationId }: { conversationId: string }) => {
         content: text,
       }).unwrap();
 
-      const apiMsg = response.data;
+      const apiMsg = response.data; // This is a RawMessage
 
-      const msg: Message = {
-        id: apiMsg.id,
-        text: apiMsg.content ?? "",
-        sender: "me",
-        time: new Date(apiMsg.createdAt).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        status: apiMsg.status,
-        reactions: [],
-      };
+      // ✅ Add the raw API response message straight to socketMessages state
+      setSocketMessages((prev) => {
+        const exists = prev.some((m) => m.id === apiMsg.id);
+        if (exists) return prev;
+        return [...prev, apiMsg];
+      });
 
-      setMessages((prev) => [...prev, msg]);
       setInput("");
       inputRef.current?.focus();
     } catch (error) {
@@ -200,8 +202,7 @@ const ChatArea = ({ conversationId }: { conversationId: string }) => {
     setEmojiPickerFor(null);
   };
 
-  // Group messages by date (simplified — just shows "Today")
-  const dateLabel = "Today";
+  // console.log("sender details ", getSenderDetails);
 
   return (
     <>
@@ -209,7 +210,6 @@ const ChatArea = ({ conversationId }: { conversationId: string }) => {
         href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@700;800&display=swap"
         rel="stylesheet"
       />
-
       <div
         className="flex flex-col w-full h-screen bg-[#070711] overflow-hidden"
         onClick={() => {
@@ -219,12 +219,12 @@ const ChatArea = ({ conversationId }: { conversationId: string }) => {
       >
         {/* ── Background orbs ── */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -left-40 w-125 h-125 bg-indigo-600 rounded-full blur-[140px] opacity-10 animate-pulse" />
-          <div className="absolute -bottom-32 -right-32 w-105 h-105 bg-violet-600 rounded-full blur-[120px] opacity-10 animate-pulse delay-1000" />
+          <div className="absolute -top-40 -left-40 w-125 h-125 bg-indigo-600 rounded-full blur-[140px] opacity-10" />
+          <div className="absolute -bottom-32 -right-32 w-105 h-105 bg-violet-600 rounded-full blur-[120px] opacity-10  delay-1000" />
         </div>
-
         {/* ── Message list ── */}
         <div
+          ref={bottomRef}
           className="flex-1 overflow-y-auto px-4 py-5 space-y-1 relative z-10 scroll-smooth"
           style={{
             scrollbarWidth: "thin",
@@ -239,6 +239,7 @@ const ChatArea = ({ conversationId }: { conversationId: string }) => {
           </div>
 
           {chatMessages.map((msg, idx) => {
+            // console.log("msg ", msg);
             const isMe = msg.sender === "me";
             const prevSame =
               idx > 0 && chatMessages[idx - 1].sender === msg.sender;
@@ -259,7 +260,10 @@ const ChatArea = ({ conversationId }: { conversationId: string }) => {
                 {!isMe && (
                   <div className="shrink-0 w-7 self-end mb-1">
                     {!nextSame ? (
-                      <div className="w-7 h-7 rounded-full bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-[11px] font-bold text-white shadow shadow-indigo-500/30">
+                      <div
+                        className="w-7 h-7 rounded-full bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center 
+                        text-[11px] font-bold text-white shadow shadow-indigo-500/30"
+                      >
                         SJ
                       </div>
                     ) : (
@@ -281,7 +285,7 @@ const ChatArea = ({ conversationId }: { conversationId: string }) => {
                     style={{ fontFamily: "DM Sans, sans-serif" }}
                   >
                     {/* Link detection */}
-                    {msg.text.startsWith("http") ? (
+                    {msg?.text?.startsWith("http") ? (
                       <a
                         href={msg.text}
                         target="_blank"
@@ -306,21 +310,6 @@ const ChatArea = ({ conversationId }: { conversationId: string }) => {
                       {isMe && <StatusTick status={msg.status} />}
                     </div>
                   </div>
-
-                  {/* Reactions */}
-                  {/* {msg.reactions && msg.reactions.length > 0 && (
-                    <div className={`flex gap-0.5 mt-1 -translate-y-1 ${isMe ? "justify-end" : "justify-start"}`}>
-                      {msg.reactions.map((r, ri) => (
-                        <button
-                          key={ri}
-                          onClick={(e) => { e.stopPropagation(); addReaction(msg.id, r); }}
-                          className="text-sm bg-white/8 border border-white/10 rounded-full px-1.5 py-0.5 hover:bg-white/[0.14] transition-colors cursor-pointer"
-                        >
-                          {r}
-                        </button>
-                      ))}
-                    </div>
-                  )} */}
 
                   {/* Hover actions */}
                   {hoveredId === msg.id && (
@@ -355,96 +344,48 @@ const ChatArea = ({ conversationId }: { conversationId: string }) => {
                             ))}
                           </div>
                         )}
+                        {/* Reply */}
+                        <button className="w-7 h-7 rounded-xl bg-[#13131f] border border-white/10 flex items-center justify-center text-white/50 hover:text-white/90 hover:bg-white/8 transition-all cursor-pointer">
+                          <Reply size={13} />
+                        </button>
+                        {/* More */}
+                        <button className="w-7 h-7 rounded-xl bg-[#13131f] border border-white/10 flex items-center justify-center text-white/50 hover:text-white/90 hover:bg-white/8 transition-all cursor-pointer">
+                          <MoreHorizontal size={13} />
+                        </button>
                       </div>
-                      {/* Reply */}
-                      <button className="w-7 h-7 rounded-xl bg-[#13131f] border border-white/10 flex items-center justify-center text-white/50 hover:text-white/90 hover:bg-white/8 transition-all cursor-pointer">
-                        <svg
-                          width="13"
-                          height="13"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <polyline points="9 14 4 9 9 4" />
-                          <path d="M20 20v-7a4 4 0 0 0-4-4H4" />
-                        </svg>
-                      </button>
-                      {/* More */}
-                      <button className="w-7 h-7 rounded-xl bg-[#13131f] border border-white/10 flex items-center justify-center text-white/50 hover:text-white/90 hover:bg-white/8 transition-all cursor-pointer">
-                        <svg
-                          width="13"
-                          height="13"
-                          viewBox="0 0 24 24"
-                          fill="currentColor"
-                        >
-                          <circle cx="5" cy="12" r="1.5" />
-                          <circle cx="12" cy="12" r="1.5" />
-                          <circle cx="19" cy="12" r="1.5" />
-                        </svg>
-                      </button>
+                      {/* My avatar */}
+                      {isMe && (
+                        <div className="shrink-0 w-7 self-end mb-1">
+                          {!nextSame ? (
+                            <div className="w-7 h-7 rounded-full bg-linear-to-br from-cyan-400 to-indigo-500 flex items-center justify-center text-[11px] font-bold text-white shadow shadow-cyan-500/30">
+                              {currentUser.username.charAt(0).toUpperCase()}
+                            </div>
+                          ) : (
+                            <Image
+                              src={currentUser.avatarUrl!}
+                              alt="avatarUrl"
+                              width={12}
+                              height={12}
+                            />
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
-
-                {/* My avatar */}
-                {isMe && (
-                  <div className="shrink-0 w-7 self-end mb-1">
-                    {!nextSame ? (
-                      <div className="w-7 h-7 rounded-full bg-linear-to-br from-cyan-400 to-indigo-500 flex items-center justify-center text-[11px] font-bold text-white shadow shadow-cyan-500/30">
-                        ME
-                      </div>
-                    ) : (
-                      <div className="w-7" />
-                    )}
-                  </div>
-                )}
               </div>
             );
           })}
-
-          {/* Typing indicator */}
-          <div className="flex items-end gap-2 mt-3">
-            <div className="w-7 h-7 rounded-full bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-[11px] font-bold text-white shrink-0">
-              SJ
-            </div>
-            <div className="bg-white/[0.07] border border-white/[0.07] rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1">
-              {[0, 150, 300].map((delay) => (
-                <span
-                  key={delay}
-                  className="w-1.5 h-1.5 bg-white/40 rounded-full animate-bounce"
-                  style={{
-                    animationDelay: `${delay}ms`,
-                    animationDuration: "1s",
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div ref={bottomRef} />
         </div>
-
         {/* ── Input bar ── */}
         <div className="relative z-10 px-4 py-3 border-t border-white/6 bg-[#0a0a14]/80 backdrop-blur-xl">
           <div className="flex items-end gap-2">
+            {/* Attachment */}
             <button className="shrink-0 w-10 h-10 rounded-xl bg-white/4 border border-white/[0.07] flex items-center justify-center text-white/40 hover:text-white/70 hover:bg-white/8 transition-all duration-150 cursor-pointer mb-0.5">
-              <svg
-                width="17"
-                height="17"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-              </svg>
+              <Paperclip size={17} />
             </button>
 
+            {/* Message Input */}
             <div className="flex-1 relative">
               <input
                 ref={inputRef}
@@ -458,50 +399,33 @@ const ChatArea = ({ conversationId }: { conversationId: string }) => {
                   }
                 }}
                 placeholder="Type a message..."
-                className="w-full bg-white/5 border border-white/8 rounded-2xl px-4 py-3 pr-12 text-white/90 text-sm placeholder:text-white/25 outline-none focus:border-indigo-500/50 focus:bg-indigo-500/5 focus:ring-2 focus:ring-indigo-500/10 transition-all duration-200 resize-none"
+                className="w-full bg-white/5 border border-white/8 rounded-2xl px-4 py-3 pr-12 text-white/90 text-sm placeholder:text-white/25 outline-none focus:border-indigo-500/50 focus:bg-indigo-500/5 focus:ring-2 focus:ring-indigo-500/10 transition-all duration-200"
                 style={{ fontFamily: "DM Sans, sans-serif" }}
               />
-              <button className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors cursor-pointer text-lg leading-none">
-                😊
+
+              {/* Emoji */}
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors cursor-pointer"
+              >
+                <Smile size={18} />
               </button>
             </div>
 
+            {/* Send / Mic Button */}
             {input.trim() ? (
               <button
                 onClick={sendMessage}
                 className="shrink-0 w-10 h-10 rounded-xl bg-linear-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-150 cursor-pointer mb-0.5"
               >
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <line x1="22" y1="2" x2="11" y2="13" />
-                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                </svg>
+                <Send size={16} />
               </button>
             ) : (
-              <button className="shrink-0 w-10 h-10 rounded-xl bg-white/4 border border-white/[0.07] flex items-center justify-center text-white/40 hover:text-white/70 hover:bg-white/8 transition-all duration-150 cursor-pointer mb-0.5">
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                  <line x1="12" y1="19" x2="12" y2="23" />
-                  <line x1="8" y1="23" x2="16" y2="23" />
-                </svg>
+              <button
+                type="button"
+                className="shrink-0 w-10 h-10 rounded-xl bg-white/4 border border-white/[0.07] flex items-center justify-center text-white/40 hover:text-white/70 hover:bg-white/8 transition-all duration-150 cursor-pointer mb-0.5"
+              >
+                <Mic size={16} />
               </button>
             )}
           </div>

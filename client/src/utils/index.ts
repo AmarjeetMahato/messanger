@@ -16,8 +16,6 @@ export const formatSidebarTime = (timestamp?: string | null) => {
   return format(date, "dd/MM/yy"); // e.g., 14/03/26
 };
 
-
-
 let cachedFingerprint: string | null = null;
 
 export const getDeviceFingerprint = async () => {

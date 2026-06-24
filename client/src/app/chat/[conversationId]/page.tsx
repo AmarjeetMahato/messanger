@@ -1,55 +1,54 @@
-"use client";
+import { User } from "@/@types/UserType";
+import ChatPageClient from "./ChatPageClient";
+import { cookies } from "next/headers";
+import { Conversation } from "@/@types/ConversationTypes";
+import { RawMessage } from "@/@types/MessageTypes";
 
-import Navbar from "@/components/Navbar";
-import ChatArea from "../components/ChatArea";
-import { useFetchUserConversationQuery } from "@/redux/rest-api/conversationApi";
-import { Contact, Conversation } from "@/@types/ConversationTypes";
-import { useParams } from "next/navigation";
-import { useEffect } from "react";
-import { socket } from "@/socket/socket";
-import { useGetMeQuery } from "@/redux/rest-api/userApi";
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ conversationId: string }>;
+}) {
+  const { conversationId } = await params; // Await it here!
+  const cookieStore = await cookies();
+  const token = cookieStore.get("accessToken")?.value;
 
-export default function ChatPage() {
-  const params = useParams();
-  const conversationId = params?.conversationId as string;
-  const { data: userData } = useGetMeQuery();
-  const userId = userData?.data?.id;
-  const { data, isLoading } = useFetchUserConversationQuery(userId!);
-  const contacts: Contact[] =
-    data?.data?.map((c: Conversation) => ({
-      id: c.id,
-      name: c.title,
-      msg: c.lastMessage?.content ?? "Start chatting",
-      time: c.lastMessage?.createdAt ?? "",
-      unread: 0,
-      online: false,
-      avatar: c.avatar ?? "",
-      color: "#9b59b6",
-    })) ?? [];
+  // console.log("token ", token);
 
-  useEffect(() => {
-    if (!conversationId) return;
-    socket.emit("chat:room", conversationId, (err?: string) => {
-      if (err) {
-        console.error("Failed to join chat:", err);
-      } else {
-        console.error("Failed to join chat:", err);
-      }
-    });
-    return () => {
-      socket.emit("chat:leave", conversationId);
-    };
-  }, [conversationId]);
+  // ---------------- USER ----------------
+  const meRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL!}/auth/me`, {
+    headers: { Cookie: `accessToken=${token}` },
+    cache: "no-store",
+  });
+  const me: { data: User } = await meRes.json();
 
-  const activeConversation = contacts.find(
-    (c) => c.id === params.conversationId,
+  // ---------------- CONVERSATIONS ----------------
+  const convoRes = await fetch(
+    `${process.env.NEXT_PUBLIC_BACKEND_URL!}/conversation/fetch_convo_by_userId`,
+    {
+      headers: { Cookie: `accessToken=${token}` },
+      cache: "no-store",
+    },
   );
+  const conversations: { data: Conversation[] } = await convoRes.json();
+
+  // ---------------- MESSAGES ----------------
+  const msgRes = await fetch(
+    `${process.env.NEXT_PUBLIC_BACKEND_URL!}/message/${conversationId}`,
+    {
+      headers: { Cookie: `accessToken=${token}` },
+      cache: "no-store",
+    },
+  );
+
+  const messages: { data: { messages: RawMessage[] } } = await msgRes.json();
+
   return (
-    <div className="flex flex-col h-screen">
-      <div className="flex-none">
-        <Navbar conversation={activeConversation} chatId={conversationId} />
-      </div>
-      <ChatArea conversationId={conversationId} />;
-    </div>
+    <ChatPageClient
+      currentUser={me.data}
+      conversations={conversations.data}
+      initialMessages={messages.data.messages}
+      conversationId={conversationId}
+    />
   );
 }
